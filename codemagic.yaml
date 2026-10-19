@@ -1,0 +1,83 @@
+# codemagic.yaml — تطبيق «وطني» (sy.medpro.watani)
+# بناء APK + AAB للإصدار النهائي — مرآة .github/workflows/build-apk.yml
+# (Node 20، JDK 17، رقم النسخة من رقم البناء، توقيع الإصدار من الـkeystore)
+#
+# خطوات الدكتور لمرة واحدة (بعد ربط codemagic.io بحساب GitHub):
+#   1. أضف التطبيق واختر المستودع medpro-watani-app — Codemagic يكتشف هذا الملف تلقائيًا
+#   2. من إعدادات التطبيق ← Code signing ← Android keystores: ارفع ملف الـkeystore
+#      واملأ كلمة سر المتجر والـalias وكلمة سر المفتاح (نفس المستخدمة في GitHub Secrets)
+# بعدها أي push على main يبني تلقائيًا، والـAPK ينزَّل من صفحة البناء.
+
+workflows:
+  android-release:
+    name: Watani Android Release
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: 20
+      vars:
+        PACKAGE_NAME: "sy.medpro.watani"
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+    cache_paths:
+      - $HOME/.gradle/caches
+      - node_modules
+    scripts:
+      - name: Install JS dependencies
+        script: npm ci --no-audit --no-fund
+
+      - name: Select JDK 17
+        script: |
+          for d in /usr/lib/jvm/java-17-openjdk-amd64 /usr/lib/jvm/java-17-openjdk; do
+            if [ -d "$d" ]; then
+              echo "JAVA_HOME=$d" >> $CM_ENV
+              break
+            fi
+          done
+
+      - name: Set version code and name from build number
+        script: |
+          sed -i "s/^\(\s*\)versionCode .*/\1versionCode $BUILD_NUMBER/" android/app/build.gradle
+          sed -i "s/versionName \"1\.0\.[0-9]*\"/versionName \"1.0.$BUILD_NUMBER\"/" android/app/build.gradle
+          sed -i "s/APP_VERSION = '1\.0\.[0-9]*'/APP_VERSION = '1.0.$BUILD_NUMBER'/" src/version.ts
+
+      - name: Set up release keystore
+        script: |
+          # Codemagic exposes the uploaded keystore as CM_KEYSTORE (base64) with
+          # CM_KEYSTORE_PASSWORD / CM_KEY_ALIAS / CM_KEY_PASSWORD.
+          # The repo's build.gradle already reads WATANI_* env vars (same contract as GitHub Actions).
+          if [ -n "$CM_KEYSTORE" ]; then
+            echo "$CM_KEYSTORE" | base64 --decode > /tmp/watani-release.keystore
+            echo "WATANI_STORE_FILE=/tmp/watani-release.keystore" >> $CM_ENV
+          elif [ -n "$CM_KEYSTORE_PATH" ]; then
+            echo "WATANI_STORE_FILE=$CM_KEYSTORE_PATH" >> $CM_ENV
+          else
+            echo "ERROR: no keystore uploaded in Codemagic code-signing settings" >&2
+            exit 1
+          fi
+          echo "WATANI_STORE_PASSWORD=$CM_KEYSTORE_PASSWORD" >> $CM_ENV
+          echo "WATANI_KEY_ALIAS=$CM_KEY_ALIAS" >> $CM_ENV
+          echo "WATANI_KEY_PASSWORD=$CM_KEY_PASSWORD" >> $CM_ENV
+
+      - name: Set Android SDK location
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+
+      - name: Build release APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --console=plain
+
+      - name: Build release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease --no-daemon --console=plain
+
+    artifacts:
+      - android/app/build/outputs/apk/release/app-release.apk
+      - android/app/build/outputs/bundle/release/app-release.aab

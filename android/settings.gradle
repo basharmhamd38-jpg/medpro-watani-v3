@@ -1,0 +1,14 @@
+pluginManagement {
+    repositories {
+        maven { url = uri("file:///home/hatch/workspace/localrepo") }
+        gradlePluginPortal()
+        google()
+        mavenCentral()
+    }
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+plugins { id("com.facebook.react.settings") }
+extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+rootProject.name = 'sy.medpro.watani'
+include ':app'
+includeBuild('../node_modules/@react-native/gradle-plugin')

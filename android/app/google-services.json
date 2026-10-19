@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "660952704333",
+    "project_id": "national-exam-8ecba",
+    "storage_bucket": "national-exam-8ecba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:660952704333:android:69eb215833b3cb5a5fc304",
+        "android_client_info": {
+          "package_name": "sy.medpro.watani"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "660952704333-0hfvagvjhi2dekk26o6t7i24vmk7cvlp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "sy.medpro.watani",
+            "certificate_hash": "6f5836c986f346f879eb7224783132b798ce2be5"
+          }
+        },
+        {
+          "client_id": "660952704333-8cdodgfk7prfj3sv70725fu6oq9h0mjr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlHOicffOYb5W5REVlEsF4KT0gEhzQ-u8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "660952704333-8cdodgfk7prfj3sv70725fu6oq9h0mjr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

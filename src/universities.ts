@@ -1,0 +1,88 @@
+// الجامعات السورية — القائمة المعتمدة لصدارة الجامعات
+// التطبيع: أسماء الملف الشخصي (جامعة دمشق، جامعة اللاذقية...) ← أسماء مختصرة موحدة
+// قاعدة الدكتور: «حمص» و«اللاذقية» حصرًا — ممنوع ظهور «البعث» أو «تشرين» كاسم عرض
+import { storage } from './auth/auth';
+
+export const UNIVERSITIES = [
+  'دمشق',
+  'حلب',
+  'اللاذقية',
+  'حمص',
+  'الفرات',
+  'طرطوس',
+  'حماه',
+] as const;
+
+export type UniversityName = (typeof UNIVERSITIES)[number] | string;
+
+const ALIASES: Record<string, string> = {
+  'جامعة دمشق': 'دمشق',
+  'دمشق': 'دمشق',
+  'جامعة حلب': 'حلب',
+  'حلب': 'حلب',
+  'جامعة اللاذقية (تشرين)': 'اللاذقية',
+  'جامعة اللاذقية': 'اللاذقية',
+  'جامعة تشرين': 'اللاذقية',
+  'تشرين': 'اللاذقية',
+  'جامعة حمص (البعث)': 'حمص',
+  'جامعة حمص': 'حمص',
+  'جامعة البعث': 'حمص',
+  'البعث': 'حمص',
+  'حمص': 'حمص',
+  'جامعة حماة': 'حماه',
+  'حماة': 'حماه',
+  'حماه': 'حماه',
+  'جامعة الفرات': 'الفرات',
+  'الفرات': 'الفرات',
+  'جامعة طرطوس': 'طرطوس',
+  'طرطوس': 'طرطوس',
+  'جامعة إدلب': 'إدلب',
+  'إدلب': 'إدلب',
+  'جامعات خاصة': 'جامعات خاصة',
+};
+
+/** تحويل أي صيغة اسم جامعة إلى الاسم المختصر الموحد */
+export function normalizeUniversity(name: string | undefined | null): string {
+  const t = (name || '').trim();
+  if (!t) return '';
+  if (ALIASES[t]) return ALIASES[t];
+  for (const [alias, canon] of Object.entries(ALIASES)) {
+    if (t.includes(alias)) return canon;
+  }
+  return t;
+}
+
+const PROFILE_KEY = 'user_profile';
+
+/** جامعة المستخدم الحالية من الملف الشخصي (مطبّعة) — '' إن لم تُحدد */
+export function getMyUniversity(): string {
+  try {
+    const raw = storage.getString(PROFILE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && typeof p.university === 'string') {
+        return normalizeUniversity(p.university);
+      }
+    }
+  } catch {
+    /* تجاهل */
+  }
+  return '';
+}
+
+/** حفظ جامعة المستخدم في الملف الشخصي المحلي */
+export function setMyUniversity(university: string): void {
+  try {
+    const raw = storage.getString(PROFILE_KEY);
+    let p: Record<string, any> = {};
+    try {
+      p = raw ? JSON.parse(raw) : {};
+    } catch {
+      p = {};
+    }
+    p.university = university;
+    storage.set(PROFILE_KEY, JSON.stringify(p));
+  } catch {
+    /* تجاهل */
+  }
+}

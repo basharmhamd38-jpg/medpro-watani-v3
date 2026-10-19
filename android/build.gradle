@@ -1,0 +1,33 @@
+buildscript {
+    configurations.classpath {
+        resolutionStrategy {
+            eachDependency { details ->
+                if (details.requested.group == "org.jetbrains.kotlin"
+                        && details.requested.name.startsWith("kotlin-gradle-plugin")) {
+                    details.useVersion("2.2.0")
+                }
+            }
+        }
+    }
+    ext {
+        buildToolsVersion = "34.0.0"
+        minSdkVersion = 24
+        compileSdkVersion = 36
+        targetSdkVersion = 35
+        ndkVersion = "27.1.12297006"
+        kotlinVersion = "2.2.0"
+    }
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:9.2.1")
+        classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.2.0")
+        classpath("com.google.gms:google-services:4.4.2")
+        classpath("com.google.firebase:firebase-crashlytics-gradle:3.0.4")
+    }
+}
+
+apply plugin: "com.facebook.react.rootproject"
