@@ -76,3 +76,5 @@ yarn-error.log
 builds/
 apk.zip
 apk/
+keystore-info.txt
+keystore-base64.txt
