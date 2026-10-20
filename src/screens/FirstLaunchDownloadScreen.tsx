@@ -12,7 +12,7 @@ import {
   type FirstLaunchError,
 } from '../sync/offlineSync';
 
-type Phase = 'loading' | 'no-internet' | 'failed' | 'done';
+type Phase = 'intro' | 'loading' | 'no-internet' | 'failed' | 'done';
 
 const ERROR_TEXT: Record<Exclude<FirstLaunchError, 'cancelled'>, string> = {
   'no-internet': 'لا يوجد اتصال بالإنترنت',
@@ -21,19 +21,20 @@ const ERROR_TEXT: Record<Exclude<FirstLaunchError, 'cancelled'>, string> = {
 
 const ERROR_HINT: Record<Exclude<FirstLaunchError, 'cancelled'>, string> = {
   'no-internet': 'تأكد من اتصالك بالإنترنت ثم أعد المحاولة',
-  failed: 'حدث خطأ أثناء تحميل الملفات — أعد المحاولة',
+  failed: 'بعض الملفات لم تُحمَّل — الاستئناف يكمل الناقص فقط دون إعادة ما اكتمل',
 };
 
 export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => void }) {
   const { colors, primaryGradient } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
-  const [phase, setPhase] = useState<Phase>('loading');
+  const [phase, setPhase] = useState<Phase>('intro');
   const [errorKind, setErrorKind] = useState<Exclude<FirstLaunchError, 'cancelled'> | null>(null);
   const [done, setDone] = useState(0);
   const [total, setTotal] = useState(0);
   const [label, setLabel] = useState('');
   const [questions, setQuestions] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const tokenRef = useRef<CancelToken>({ cancelled: false });
   const aliveRef = useRef(true);
 
@@ -45,13 +46,15 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
     setTotal(0);
     setLabel('');
     setQuestions(0);
+    setFailedCount(0);
     void firstLaunchDownload(
-      (d, t, fileLabel, questionsSoFar) => {
+      (d, t, fileLabel, questionsSoFar, failedSoFar) => {
         if (!aliveRef.current) return;
         setDone(d);
         setTotal(t);
         setLabel(fileLabel);
         setQuestions(questionsSoFar ?? 0);
+        setFailedCount(failedSoFar ?? 0);
       },
       tokenRef.current,
     ).then((res) => {
@@ -60,8 +63,9 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
         setPhase('done');
         onDone();
       } else if (res.error === 'cancelled') {
-        setPhase('loading');
+        setPhase('intro');
       } else {
+        setFailedCount(res.failed?.length ?? 0);
         setErrorKind(res.error ?? 'failed');
         setPhase(res.error === 'no-internet' ? 'no-internet' : 'failed');
       }
@@ -70,12 +74,11 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
 
   useEffect(() => {
     aliveRef.current = true;
-    run();
     return () => {
       aliveRef.current = false;
       tokenRef.current.cancelled = true;
     };
-  }, [run]);
+  }, []);
 
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -96,7 +99,22 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
         {bidi('يُحمَّل مرة واحدة فقط — بعدها يعمل التطبيق كاملًا بلا إنترنت')}
       </Text>
 
-      {phase === 'loading' || phase === 'done' ? (
+      {phase === 'intro' ? (
+        <View style={styles.errorZone}>
+          <Text style={[styles.errorHint, rtlTextStyle]}>
+            {bidi('حمّل بنك الأسئلة كاملًا على جهازك مرة واحدة — بعدها يعمل التطبيق كاملًا بلا إنترنت')}
+          </Text>
+          <TouchableOpacity activeOpacity={0.85} onPress={run} style={styles.retryWrap}>
+            <LinearGradient
+              colors={[...primaryGradient]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.retryBtn}>
+              <Text style={styles.retryText}>{bidi('تحميل المحتوى')}</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      ) : phase === 'loading' || phase === 'done' ? (
         <View style={styles.progressZone}>
           <View style={styles.track}>
             <LinearGradient
@@ -112,6 +130,7 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
           </Text>
           <Text style={styles.count}>
             {done} / {total} {bidi('ملف')} • {questions} {bidi('سؤال')}
+            {failedCount > 0 ? ` • ${failedCount} ${bidi('فشل')}` : ''}
           </Text>
         </View>
       ) : (
@@ -121,6 +140,7 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
           </Text>
           <Text style={[styles.errorHint, rtlTextStyle]}>
             {errorKind ? ERROR_HINT[errorKind] : ''}
+            {failedCount > 0 ? ` (${failedCount} ${bidi('ملف ناقص')})` : ''}
           </Text>
           <TouchableOpacity activeOpacity={0.85} onPress={run} style={styles.retryWrap}>
             <LinearGradient
@@ -128,7 +148,9 @@ export default function FirstLaunchDownloadScreen({ onDone }: { onDone: () => vo
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.retryBtn}>
-              <Text style={styles.retryText}>{bidi('إعادة المحاولة')}</Text>
+              <Text style={styles.retryText}>
+                {bidi(failedCount > 0 ? 'استئناف التحميل' : 'إعادة المحاولة')}
+              </Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>

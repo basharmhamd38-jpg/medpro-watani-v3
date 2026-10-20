@@ -272,6 +272,34 @@ function shardCacheKey(file: string): string {
 }
 
 /**
+ * تعبئة كاش القراءة بملف نزّله محرّك المزامنة (offlineSync) — توحيد الطبقات:
+ * الشاشات تقرأ من مفاتيح الكاش المشفّر هذه حصرًا، فبدون تعبئتها يبقى المحتوى
+ * «منزّلًا» في SQLite لكنه غير مرئي للشاشات أوفلاين (تشخيص 20 أكتوبر 2026).
+ * يُكتب الملف الخام كما هو تحت المفتاح نفسه الذي يستخدمه قارئه. أفضل جهد — بلا رمي.
+ */
+export async function primeDownloadedFile(path: string, data: any): Promise<void> {
+  try {
+    if (!data || typeof data !== 'object') return;
+    if (path.startsWith('questions/')) {
+      await secureSet(shardCacheKey(path), data).catch(() => {});
+    } else if (path.startsWith('dawrat_jami3at/')) {
+      await secureSet('cdn_univ_' + path.replace(/[^a-zA-Z0-9_-]/g, '_'), data).catch(() => {});
+    } else if (path.startsWith('dawrat/')) {
+      await secureSet('cdn_dawrat_' + path.replace(/[^a-zA-Z0-9_-]/g, '_'), data).catch(() => {});
+    } else if (path === 'cases.json') {
+      await secureSet(SECURE_CACHE_KEYS.cases, data).catch(() => {});
+    } else if (path === 'practice_models/index.json') {
+      await secureSet('pm_index', data).catch(() => {});
+    } else if (path.startsWith('practice_models/')) {
+      const id = (path.split('/').pop() || '').replace(/\.json$/i, '');
+      if (id) await secureSet('pm_model_' + id, data).catch(() => {});
+    }
+  } catch {
+    /* أفضل جهد — تجاهل */
+  }
+}
+
+/**
  * جلب شارد مادة واحدة (مشفر محليًا) — يُعيد null عند الفشل.
  * البنية: {subject_id, subject_name, count, topics:[{id,name,questions:[...]}]}
  * صلاحية الكاش تُفحص عبر content_version: عند تحديث اللوحة يُتجاهل الكاش القديم.
