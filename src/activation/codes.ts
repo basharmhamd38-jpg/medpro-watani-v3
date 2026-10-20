@@ -120,9 +120,19 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
   if (!user) {
     throw new Error('NOT_AUTHENTICATED');
   }
-  const token = await user.getIdToken();
+  // نستخدم توكن Google مباشرة (وليس توكن Firebase) لأن السيرفر يتحقق من توكنات Google
+  let googleIdToken: string | null = null;
+  try {
+    const tokens = await GoogleSignin.getTokens();
+    googleIdToken = tokens.idToken ?? null;
+  } catch {
+    googleIdToken = null;
+  }
+  if (!googleIdToken) {
+    throw new Error('NOT_AUTHENTICATED');
+  }
   return {
-    Authorization: `Bearer ${token}`,
+    Authorization: `Bearer ${googleIdToken}`,
     'Content-Type': 'application/json',
   };
 }
