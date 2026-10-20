@@ -416,9 +416,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
     marginBottom: 8,
-    writingDirection: 'ltr',
   },
   backRow: {
     alignSelf: 'flex-start',
@@ -481,8 +479,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 13,
     color: colors.textSecondary,
-    textAlign: 'left',
-    writingDirection: 'ltr',
   },
   acc: {
     backgroundColor: colors.accordionBg,
@@ -504,8 +500,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
-    writingDirection: 'ltr',
   },
   accMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   countPill: {
@@ -543,9 +537,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '400',
     color: colors.text,
-    textAlign: 'left',
     flex: 1,
-    writingDirection: 'ltr',
   },
   roundNameLocked: { color: colors.textSecondary },
   roundMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },

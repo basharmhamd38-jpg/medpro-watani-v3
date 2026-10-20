@@ -146,9 +146,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'left',
     marginEnd: 8,
-    writingDirection: 'ltr',
   },
   badgeCircle: {
     width: 110,
@@ -164,7 +162,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.title,
     textAlign: 'center',
-    writingDirection: 'ltr',
     marginBottom: 6,
   },
   badgeDesc: {
@@ -172,7 +169,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13.5,
     color: colors.textSecondary,
     textAlign: 'center',
-    writingDirection: 'ltr',
     lineHeight: 20,
     marginBottom: 18,
   },

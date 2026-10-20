@@ -168,8 +168,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
-    writingDirection: 'ltr',
   },
   scroll: { flex: 1 },
   content: { padding: 16, paddingBottom: 32, gap: 8 },
@@ -186,13 +184,10 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
     marginBottom: 4,
-    writingDirection: 'ltr',
   },
   note: {
-            writingDirection: 'ltr',
-          fontFamily: 'tajawal', fontSize: 13, color: colors.textSecondary, textAlign: 'left' },
+          fontFamily: 'tajawal', fontSize: 13, color: colors.textSecondary, },
   emptyNote: {
                fontFamily: 'tajawal', fontSize: 13, color: colors.textMuted, textAlign: 'center', paddingVertical: 10 },
   row: {
@@ -211,8 +206,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   topicRow: { height: TOPIC_ROW_HEIGHT },
   rowText: { flex: 1, alignItems: 'flex-end', marginStart: 8 },
   topicName: {
-                 writingDirection: 'ltr',
-               fontFamily: 'tajawal', fontSize: 14, fontWeight: '700', color: colors.text, textAlign: 'left' },
+               fontFamily: 'tajawal', fontSize: 14, fontWeight: '700', color: colors.text, },
   topicCount: {
                 fontFamily: 'tajawal', fontSize: 12, color: colors.textMuted, marginTop: 2 },
 });

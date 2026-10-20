@@ -460,14 +460,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
     ...rtlTextStyle,
-    textAlign: 'left',
   },
   heroSub: {
     fontSize: 11,
     color: colors.explainBorder,
     marginTop: 2,
     ...rtlTextStyle,
-    textAlign: 'left',
   },
   refreshBtn: {
     padding: 8,
@@ -484,7 +482,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: '#FEF3C7',
     ...rtlTextStyle,
-    textAlign: 'left',
   },
   progressTrack: {
     height: 12,
@@ -506,7 +503,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.explainBorder,
     marginTop: 10,
     ...rtlTextStyle,
-    textAlign: 'left',
   },
   toggleWrap: {
     flexDirection: 'row',
@@ -635,14 +631,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.title,
     ...rtlTextStyle,
-    textAlign: 'left',
   },
   userLevel: {
     fontSize: 11,
     color: colors.textSecondary,
     marginTop: 2,
     ...rtlTextStyle,
-    textAlign: 'left',
   },
   xpPill: {
     backgroundColor: colors.bg,

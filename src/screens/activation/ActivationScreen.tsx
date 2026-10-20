@@ -283,9 +283,7 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 19,
       fontWeight: '700',
       color: colors.burgundy,
-      textAlign: 'left',
       marginBottom: 14,
-      writingDirection: 'ltr',
     },
     card: {
       backgroundColor: colors.card,
@@ -304,7 +302,6 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       marginTop: 12,
       marginBottom: 8,
-      writingDirection: 'ltr',
     },
     gateText: {
       fontFamily: 'tajawal',
@@ -313,7 +310,6 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       lineHeight: 22,
       marginBottom: 18,
-      writingDirection: 'ltr',
     },
     userCard: {
       backgroundColor: colors.card,
@@ -328,16 +324,12 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.title,
-      textAlign: 'left',
-      writingDirection: 'ltr',
     },
     userCardEmail: {
       fontFamily: 'tajawal',
       fontSize: 12.5,
       color: colors.textSecondary,
-      textAlign: 'left',
       marginTop: 2,
-      writingDirection: 'ltr',
     },
     planCard: {
       borderRadius: radius.xl,
@@ -349,9 +341,7 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 17,
       fontWeight: '700',
       color: colors.white,
-      textAlign: 'left',
       marginBottom: 14,
-      writingDirection: 'ltr',
     },
     perkRow: {
       flexDirection: 'row',
@@ -363,9 +353,7 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.white,
-      textAlign: 'left',
       marginEnd: 8,
-      writingDirection: 'ltr',
     },
     cardTitle: {
       fontFamily: 'tajawal',
@@ -375,7 +363,6 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       marginTop: 10,
       marginBottom: 8,
-      writingDirection: 'ltr',
     },
     codeHint: {
       fontFamily: 'tajawal',
@@ -384,7 +371,6 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       lineHeight: 20,
       marginBottom: 14,
-      writingDirection: 'ltr',
     },
     codeInput: {
       borderWidth: 1.5,
@@ -419,7 +405,6 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 15,
       fontWeight: '700',
       textAlign: 'center',
-      writingDirection: 'ltr',
     },
     flowLine: {
       fontFamily: 'tajawal',
@@ -428,6 +413,5 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       marginTop: 14,
       marginBottom: 8,
-      writingDirection: 'ltr',
     },
   });

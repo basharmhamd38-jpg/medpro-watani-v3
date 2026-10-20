@@ -349,9 +349,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'left',
     flexShrink: 1,
-    writingDirection: 'ltr',
   },
   subjectBadge: {
     backgroundColor: colors.burgundy + '1A',
@@ -370,9 +368,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.textSecondary,
-    textAlign: 'left',
     lineHeight: 18,
-    writingDirection: 'ltr',
   },
   datasetTabs: {
     flexDirection: 'row',

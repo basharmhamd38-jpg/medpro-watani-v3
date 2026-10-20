@@ -156,16 +156,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'left',
-    writingDirection: 'ltr',
     marginBottom: 4,
   },
   sub: {
     fontFamily: 'tajawal',
     fontSize: 13.5,
     color: colors.textSecondary,
-    textAlign: 'left',
-    writingDirection: 'ltr',
     marginBottom: 16,
   },
   loadingText: {
@@ -210,7 +206,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.title,
     textAlign: 'center',
-    writingDirection: 'ltr',
     marginBottom: 4,
   },
   titleLocked: {
@@ -221,7 +216,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11.5,
     color: colors.textMuted,
     textAlign: 'center',
-    writingDirection: 'ltr',
     lineHeight: 17,
     marginBottom: 10,
     flex: 1,
@@ -262,6 +256,5 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11.5,
     color: colors.textMuted,
     marginEnd: 4,
-    writingDirection: 'ltr',
   },
 });

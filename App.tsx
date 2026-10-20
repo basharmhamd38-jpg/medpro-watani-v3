@@ -1,14 +1,14 @@
 /**
  * Med pro - وطني — نقطة الدخول
- * وضع تشخيصي LTR — الاتجاه يُفرض قبل التسجيل.
+ * RTL مفروض قبل التسجيل، تهيئة قاعدة البيانات والبذور عند الإقلاع.
  */
 import { I18nManager, StyleSheet, View } from 'react-native';
 
-// يُفرض LTR قبل أي تسجيل/عرض — يُنفَّذ عند استيراد الوحدة (قبل registerComponent)
-I18nManager.allowRTL(false);
-I18nManager.forceRTL(false);
+// يُفرض RTL قبل أي تسجيل/عرض — يُنفَّذ عند استيراد الوحدة (قبل registerComponent)
+I18nManager.allowRTL(true);
+I18nManager.forceRTL(true);
 
-// ملاحظة: محاذاة LTR الافتراضية لكل النصوص تتم عبر مكوّن `AppText`
+// ملاحظة: محاذاة RTL الافتراضية لكل النصوص تتم عبر مكوّن `AppText`
 // (src/components/AppText.tsx) — كل ملف يستورد `Text` منه.
 // (لا تستخدم Text.defaultProps — React 19 أزال دعمه نهائيًا فيُتجاهل بصمت)
 

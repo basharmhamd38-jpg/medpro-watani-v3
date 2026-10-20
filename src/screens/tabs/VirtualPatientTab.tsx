@@ -335,14 +335,10 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 18,
       fontWeight: '700',
       color: colors.text,
-      textAlign: 'left',
-      writingDirection: 'ltr',
     },
     heroSub: {
       fontSize: 13,
       color: colors.textMuted,
-      textAlign: 'left',
-      writingDirection: 'ltr',
       marginTop: 4,
       lineHeight: 20,
     },
@@ -374,8 +370,6 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '700',
       color: colors.text,
-      textAlign: 'left',
-      writingDirection: 'ltr',
     },
     badges: {
       flexDirection: 'row',
@@ -406,8 +400,6 @@ const getStyles = (colors: ThemeColors) =>
     cardMeta: {
       fontSize: 12,
       color: colors.textMuted,
-      textAlign: 'left',
-      writingDirection: 'ltr',
       marginTop: 8,
       lineHeight: 18,
     },

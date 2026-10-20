@@ -79,5 +79,4 @@ export function bidi(text: string | null | undefined): string {
  * يُستخدم مع textAlign: 'right' الموجود.
  */
 export const rtlTextStyle = {
-  writingDirection: 'rtl' as const,
 };

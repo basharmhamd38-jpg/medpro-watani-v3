@@ -176,7 +176,6 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 15,
       fontWeight: '700',
       color: colors.textSecondary,
-      writingDirection: 'ltr',
     },
     slide: {
       width: SCREEN_W,
@@ -204,7 +203,6 @@ const getStyles = (colors: ThemeColors) =>
       color: colors.title,
       textAlign: 'center',
       marginBottom: 10,
-      writingDirection: 'ltr',
     },
     desc: {
       fontSize: 15,
@@ -212,7 +210,6 @@ const getStyles = (colors: ThemeColors) =>
       textAlign: 'center',
       lineHeight: 24,
       marginBottom: 24,
-      writingDirection: 'ltr',
     },
     points: {
       alignSelf: 'stretch',
@@ -239,7 +236,6 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 14,
       fontWeight: '400',
       color: colors.text,
-      writingDirection: 'ltr',
     },
     dots: {
       flexDirection: 'row',
@@ -274,6 +270,5 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 17,
       fontWeight: '700',
       color: colors.white,
-      writingDirection: 'ltr',
     },
   });

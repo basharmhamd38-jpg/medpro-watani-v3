@@ -267,13 +267,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
   },
   subtitle: {
     fontFamily: 'tajawal',
     fontSize: 13,
     color: colors.textSecondary,
-    textAlign: 'left',
     marginTop: 2,
   },
   timerBox: {
@@ -378,7 +376,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: colors.success,
-    textAlign: 'left',
     marginBottom: 8,
   },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -420,7 +417,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 13,
     color: colors.explainText,
-    textAlign: 'left',
     lineHeight: 22,
   },
   sourcesTitle: {
@@ -428,14 +424,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.textSecondary,
-    textAlign: 'left',
     marginBottom: 4,
   },
   sourceLine: {
     fontFamily: 'tajawal',
     fontSize: 11,
     color: colors.textMuted,
-    textAlign: 'left',
     lineHeight: 18,
   },
 });

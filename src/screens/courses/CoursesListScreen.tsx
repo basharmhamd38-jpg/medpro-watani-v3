@@ -253,8 +253,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     justifyContent: 'center',
   },
   info: { flex: 1, marginHorizontal: 10 },
-  title: { fontFamily: 'tajawal', fontSize: 16, fontWeight: '700', color: colors.title, textAlign: 'left', writingDirection: 'ltr' },
-  meta: { fontFamily: 'tajawal', fontSize: 12.5, color: colors.textSecondary, textAlign: 'left', writingDirection: 'ltr', marginTop: 2 },
   footer: { marginTop: 10 },
   dlBtnWrap: { alignSelf: 'flex-start' },
   dlBtn: { flexDirection: 'row', alignItems: 'center', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 9 },
@@ -262,7 +260,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   dlRow: { flexDirection: 'row', alignItems: 'center' },
   track: { flex: 1, height: 8, backgroundColor: colors.segBg, borderRadius: 999, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 999 },
-  pct: { fontFamily: 'tajawal', fontSize: 12, fontWeight: '700', color: colors.success, marginEnd: 8, minWidth: 38, textAlign: 'left' },
+  pct: { fontFamily: 'tajawal', fontSize: 12, fontWeight: '700', color: colors.success, marginEnd: 8, minWidth: 38, },
   // حالة الفراغ + زر إعادة المحاولة
   emptyWrap: {
     flex: 1,
@@ -330,9 +328,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '400',
     color: colors.amberText,
-    textAlign: 'left',
     marginHorizontal: 8,
-    writingDirection: 'ltr',
   },
   warnRetry: {
     flex: 1,
@@ -341,4 +337,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.burgundy,
   },
+  meta: {},
+  title: {},
 });

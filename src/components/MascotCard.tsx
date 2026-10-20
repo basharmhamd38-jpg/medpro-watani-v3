@@ -162,7 +162,6 @@ const getStyles = (colors: ThemeColors) =>
       fontWeight: '700',
       color: colors.burgundyLight,
       ...rtlTextStyle,
-      textAlign: 'left',
     },
     message: {
       fontSize: 13.5,
@@ -170,6 +169,5 @@ const getStyles = (colors: ThemeColors) =>
       color: colors.title,
       lineHeight: 22,
       ...rtlTextStyle,
-      textAlign: 'left',
     },
   });

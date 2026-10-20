@@ -83,22 +83,16 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 14,
       fontWeight: '700',
       color: colors.title,
-      textAlign: 'left',
-      writingDirection: 'ltr',
       marginBottom: 2,
     },
     body: {
       fontSize: 12,
       color: colors.textSecondary,
-      textAlign: 'left',
-      writingDirection: 'ltr',
       marginBottom: 4,
     },
     action: {
       fontSize: 12,
       fontWeight: '700',
       color: colors.burgundy,
-      textAlign: 'left',
-      writingDirection: 'ltr',
     },
   });

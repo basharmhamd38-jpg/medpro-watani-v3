@@ -233,17 +233,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
     marginBottom: 4,
-    writingDirection: 'ltr',
   },
   sub: {
     fontFamily: 'tajawal',
     fontSize: 13,
     color: colors.textSecondary,
-    textAlign: 'left',
     marginBottom: 14,
-    writingDirection: 'ltr',
   },
   backLink: { marginBottom: 8, alignSelf: 'flex-start' },
   backLinkText: {
@@ -251,8 +247,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'left',
-    writingDirection: 'ltr',
   },
   list: { gap: 10 },
   row: {
@@ -281,16 +275,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 15.5,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
     marginBottom: 2,
-    writingDirection: 'ltr',
   },
   rowMeta: {
     fontFamily: 'tajawal',
     fontSize: 12.5,
     color: colors.textSecondary,
-    textAlign: 'left',
-    writingDirection: 'ltr',
   },
   go: { fontSize: 22, color: colors.burgundyLight, fontWeight: '700' },
 });

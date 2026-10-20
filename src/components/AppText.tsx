@@ -5,10 +5,11 @@
  * فصار `Text.defaultProps.style = [...]` في App.tsx بلا أي أثر (يُتجاهل بصمت).
  * هذا المكوّن يطبّق نفس النية صراحةً.
  *
- * وضع تشخيصي LTR: النصوص تبدأ من اليسار افتراضيًا (اختبار فرضية أن RTL
- * يسبب مشاكل التنسيق/التعليق). المحتوى العربي يبقى عربيًا كما هو.
+ * الطريقة الجديدة (RTL تلقائي): كل نص عربي يُحاذى لليمين افتراضيًا، واتجاه
+ * الكتابة يُترك للنظام تلقائيًا (I18nManager RTL + bidi الخوارزمية الأصلية)
+ * بدون أي writingDirection يدوي — هذا يمنع تفكك الحروف وانعكاس الترتيب.
  *
- * أي `textAlign` صريح يُمرَّر في `style` يتجاوزه (مثل 'right' أو 'center')
+ * أي `textAlign` صريح يُمرَّر في `style` يتجاوزه (مثل 'center' للعناوين)
  * لأن style الممرَّر يأتي بعد الافتراضي.
  */
 import React from 'react';
@@ -22,9 +23,8 @@ import {
 import { fontFamily } from '../theme';
 
 const styles = StyleSheet.create({
-  ltrDefault: {
-    textAlign: 'left',
-    writingDirection: 'ltr',
+  rtlDefault: {
+    textAlign: 'right',
     // الخط الموحد لكل التطبيق — يمنع رجوع النظام لخط افتراضي مختلف
     fontFamily: fontFamily.regular,
   },
@@ -32,12 +32,12 @@ const styles = StyleSheet.create({
 
 export function AppText(props: TextProps) {
   const { style, ...rest } = props;
-  return <RNText style={[styles.ltrDefault, style]} {...rest} />;
+  return <RNText style={[styles.rtlDefault, style]} {...rest} />;
 }
 
 export function AppTextInput(props: TextInputProps) {
   const { style, ...rest } = props;
-  return <RNTextInput style={[styles.ltrDefault, style]} {...rest} />;
+  return <RNTextInput style={[styles.rtlDefault, style]} {...rest} />;
 }
 
 export default AppText;

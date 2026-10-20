@@ -283,9 +283,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
     marginBottom: 8,
-    writingDirection: 'ltr',
   },
   backRow: {
     alignSelf: 'flex-start',
@@ -302,10 +300,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 13,
     color: colors.textSecondary,
-    textAlign: 'left',
     marginBottom: 12,
     lineHeight: 22,
-    writingDirection: 'ltr',
   },
   noteBold: {
     fontFamily: 'tajawal',
@@ -329,8 +325,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'left',
-    writingDirection: 'ltr',
   },
   rowMeta: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowCount: {

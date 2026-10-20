@@ -307,7 +307,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     backgroundColor: colors.card, borderRadius: 18, borderWidth: 1, borderColor: colors.border,
     padding: 16, marginBottom: 12, ...shadows.card,
   },
-  qText: { fontFamily: 'tajawal', fontSize: 16, fontWeight: '700', color: colors.title, textAlign: 'left', lineHeight: 26, ...rtlTextStyle },
   option: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: colors.optionBg,
     borderRadius: 14, borderWidth: 1.5, borderColor: colors.border, padding: 13, marginBottom: 9,
@@ -318,7 +317,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   optBadgeActive: { backgroundColor: colors.burgundy },
   optBadgeText: { fontFamily: 'tajawal', fontSize: 14, fontWeight: '700', color: colors.textSecondary },
   optBadgeTextActive: { color: colors.white },
-  optText: { flex: 1, fontFamily: 'tajawal', fontSize: 14.5, color: colors.text, textAlign: 'left', marginEnd: 10, lineHeight: 23, ...rtlTextStyle },
   navRow: { flexDirection: 'row', marginTop: 12, gap: 10 },
   navBtnWrap: { flex: 1 },
   navBtn: { borderRadius: radius.md, paddingVertical: 13, alignItems: 'center', flex: 1 },
@@ -337,4 +335,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   doneBtnWrap: { marginTop: 16, width: '100%' },
   doneBtn: { borderRadius: radius.md, paddingVertical: 13, alignItems: 'center' },
   doneText: { fontFamily: 'tajawal', fontSize: 15, fontWeight: '700', color: colors.card },
+  optText: {},
+  qText: {},
 });

@@ -352,7 +352,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: 12,
     ...shadows.card,
   },
-  qText: { fontFamily: 'tajawal', fontSize: 16, fontWeight: '700', color: colors.title, textAlign: 'left', lineHeight: 26, ...rtlTextStyle },
   badges: { flexDirection: 'row', marginTop: 10, gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' },
   yearBadge: {
     flexDirection: 'row',
@@ -389,7 +388,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   optBadgeWrong: { backgroundColor: colors.error },
   optBadgeText: { fontFamily: 'tajawal', fontSize: 14, fontWeight: '700', color: colors.textSecondary },
   optBadgeTextActive: { color: colors.white },
-  optText: { flex: 1, flexShrink: 1, fontFamily: 'tajawal', fontSize: 14.5, color: colors.text, textAlign: 'left', marginEnd: 10, lineHeight: 23, ...rtlTextStyle },
   optTextActive: {
                    fontFamily: 'tajawal', fontWeight: '700', color: colors.title },
   answerLine: {
@@ -399,7 +397,6 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 2,
     marginBottom: 10,
   },
-  answerText: { fontFamily: 'tajawal', fontSize: 14.5, fontWeight: '700', color: colors.success, textAlign: 'left', lineHeight: 23, ...rtlTextStyle },
   explainWrap: { marginTop: 4 },
   section: {
     backgroundColor: colors.card,
@@ -417,11 +414,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   sectionTitle: { fontFamily: 'tajawal', fontSize: 14.5, fontWeight: '700', color: colors.burgundy },
   sectionBody: { paddingHorizontal: 13, paddingBottom: 13, borderTopWidth: 1, borderTopColor: colors.borderFaint, paddingTop: 10 },
-  bodyText: { fontFamily: 'tajawal', fontSize: 14, color: colors.text, textAlign: 'left', lineHeight: 24, ...rtlTextStyle },
   wrongRow: { marginBottom: 10, backgroundColor: colors.accordionBg, borderRadius: 10, padding: 10 },
-  wrongOpt: { fontFamily: 'tajawal', fontSize: 13.5, fontWeight: '700', color: colors.title, textAlign: 'left', marginBottom: 3, ...rtlTextStyle },
-  wrongReason: { fontFamily: 'tajawal', fontSize: 13.5, color: colors.text, textAlign: 'left', lineHeight: 23, ...rtlTextStyle },
-  src: { fontFamily: 'tajawal', fontSize: 11.5, color: colors.textMuted, textAlign: 'left', marginTop: 6, ...rtlTextStyle },
   navRow: { flexDirection: 'row', marginTop: 14, gap: 10 },
   navBtn: {
     flex: 1,
@@ -433,4 +426,11 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   navBtnText: { fontFamily: 'tajawal', fontSize: 15, fontWeight: '700', color: colors.card },
   navBtnGhost: { backgroundColor: colors.card, borderWidth: 1.5, borderColor: colors.ghostBorder },
   navBtnGhostText: { fontFamily: 'tajawal', fontSize: 15, fontWeight: '700', color: colors.burgundy },
+  answerText: {},
+  bodyText: {},
+  optText: {},
+  qText: {},
+  src: {},
+  wrongOpt: {},
+  wrongReason: {},
 });

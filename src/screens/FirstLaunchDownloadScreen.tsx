@@ -165,14 +165,12 @@ const getStyles = (colors: ThemeColors) =>
       fontWeight: '700',
       color: colors.white,
       textAlign: 'center',
-      writingDirection: 'ltr',
     },
     subtitle: {
       marginTop: 10,
       fontSize: 14,
       color: colors.burgundyLight,
       textAlign: 'center',
-      writingDirection: 'ltr',
       lineHeight: 22,
     },
     progressZone: {
@@ -199,7 +197,6 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 14,
       color: colors.burgundyLight,
       textAlign: 'center',
-      writingDirection: 'ltr',
     },
     count: {
       fontSize: 12.5,
@@ -217,13 +214,11 @@ const getStyles = (colors: ThemeColors) =>
       fontWeight: '700',
       color: colors.white,
       textAlign: 'center',
-      writingDirection: 'ltr',
     },
     errorHint: {
       fontSize: 13.5,
       color: colors.burgundyLight,
       textAlign: 'center',
-      writingDirection: 'ltr',
       lineHeight: 21,
     },
     retryWrap: { marginTop: 12, width: '100%' },

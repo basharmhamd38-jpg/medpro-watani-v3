@@ -253,8 +253,6 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '700',
       color: colors.title,
-      textAlign: 'left',
-      writingDirection: 'ltr',
     },
   });
 
