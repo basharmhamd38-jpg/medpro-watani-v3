@@ -94,7 +94,7 @@ export default function SplashScreen() {
         }}>
         <Text style={styles.title}>{bidi('Med pro - وطني')}</Text>
         <Text style={styles.subtitle}>
-          {'رفيقك للامتحان الطبي الوطني'}
+          {'نجاحك في الوطني يبدأ من هنا'}
         </Text>
       </Animated.View>
     </LinearGradient>

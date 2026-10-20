@@ -32,7 +32,7 @@ import { isOfflineReady, backgroundSync } from './src/sync/offlineSync';
 import { selfTestSecureCache } from './src/content/secureCache';
 import { ThemeProvider, useTheme } from './src/theme';
 
-const MIN_SPLASH_MS = 1600; // مدة دنيا لظهور الشاشة الافتتاحية المتحركة
+const MIN_SPLASH_MS = 2600; // مدة دنيا لظهور الشاشة الافتتاحية المتحركة — الحركة ~1.25ث ثم استقرار مريح للشعار والسلوغن (كانت 1600 فتومض)
 
 function ThemedStatusBar() {
   const { isDark } = useTheme();
