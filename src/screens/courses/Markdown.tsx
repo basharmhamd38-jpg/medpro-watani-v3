@@ -107,9 +107,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.burgundy,
     marginTop: 14,
     marginBottom: 6,
-    textAlign: 'right',
+    textAlign: 'left',
     ...rtlTextStyle,
-    writingDirection: 'rtl',
+    writingDirection: 'ltr',
   },
   p: {
     fontFamily: 'tajawal',
@@ -117,9 +117,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     lineHeight: 24,
     color: colors.text,
     marginBottom: 8,
-    textAlign: 'right',
+    textAlign: 'left',
     ...rtlTextStyle,
-    writingDirection: 'rtl',
+    writingDirection: 'ltr',
   },
   bold: {
           fontFamily: 'tajawal', fontWeight: '700', color: colors.title, ...rtlTextStyle },
@@ -132,9 +132,9 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14.5,
     lineHeight: 24,
     color: colors.text,
-    textAlign: 'right',
+    textAlign: 'left',
     ...rtlTextStyle,
-    writingDirection: 'rtl',
+    writingDirection: 'ltr',
   },
   quote: {
     borderRightWidth: 3,
@@ -144,5 +144,5 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: 10,
     marginBottom: 8,
   },
-  quoteText: { fontFamily: 'tajawal', fontSize: 14, lineHeight: 23, color: colors.explainText, textAlign: 'right', ...rtlTextStyle },
+  quoteText: { fontFamily: 'tajawal', fontSize: 14, lineHeight: 23, color: colors.explainText, textAlign: 'left', ...rtlTextStyle },
 });

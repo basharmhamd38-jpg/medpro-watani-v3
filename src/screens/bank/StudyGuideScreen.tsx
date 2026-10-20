@@ -1641,7 +1641,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 19,
     fontWeight: '700',
     color: colors.white,
-    textAlign: 'right',
+    textAlign: 'left',
     flexShrink: 1,
   },
   bannerDesc: {
@@ -1649,7 +1649,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   tabsGrid: {
@@ -1701,7 +1701,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
     flexShrink: 1,
   },
   titleDesc: {
@@ -1710,7 +1710,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
     lineHeight: 19,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   searchWrap: {
@@ -1730,7 +1730,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.title,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   emptyBox: { alignItems: 'center', paddingVertical: 32 },
@@ -1769,7 +1769,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
     flexShrink: 1,
   },
   accordionBody: {
@@ -1801,7 +1801,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: colors.text,
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   methodBadge: {
@@ -1823,7 +1823,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   methodDescBox: {
     marginTop: 8,
@@ -1838,7 +1838,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: colors.text,
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   pomoCard: { alignItems: 'center', gap: 16, paddingVertical: 24 },
@@ -1952,7 +1952,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   countBadge: {
     backgroundColor: 'rgba(122,31,43,0.1)',
@@ -1996,7 +1996,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: colors.text,
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   checkTextDone: {
     textDecorationLine: 'line-through',
@@ -2056,7 +2056,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   barPct: { fontFamily: 'tajawal', fontSize: 12, fontWeight: '700' },
   barTrack: {
@@ -2072,7 +2072,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   recCard: {
     backgroundColor: colors.card,
@@ -2086,7 +2086,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     color: colors.text,
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   quizHead: {
@@ -2122,7 +2122,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.title,
     lineHeight: 24,
-    textAlign: 'right',
+    textAlign: 'left',
     marginTop: 12,
     marginBottom: 10,
   },
@@ -2142,7 +2142,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.text,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   optLetter: {
     width: 26,
@@ -2300,7 +2300,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.text,
-    textAlign: 'right',
+    textAlign: 'left',
     lineHeight: 20,
   },
   recallInput: {
@@ -2345,12 +2345,12 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 11,
     fontWeight: '700',
-    textAlign: 'right',
+    textAlign: 'left',
   },
   scoreColText: {
     fontFamily: 'tajawal',
     fontSize: 12,
-    textAlign: 'right',
+    textAlign: 'left',
     lineHeight: 19,
   },
 
@@ -2359,7 +2359,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     paddingBottom: 10,
@@ -2369,7 +2369,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.textSecondary,
-    textAlign: 'right',
+    textAlign: 'left',
     marginBottom: 10,
     lineHeight: 19,
   },
@@ -2387,14 +2387,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   palaceStepDesc: {
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.text,
     lineHeight: 20,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   amberExample: {
     backgroundColor: colors.explainBg,
@@ -2409,14 +2409,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.amberText,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   amberExampleText: {
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.explainText,
     lineHeight: 21,
-    textAlign: 'right',
+    textAlign: 'left',
   },
 
   addRow: { flexDirection: 'row', gap: 8 },
@@ -2431,7 +2431,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.title,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   addBtn: {
     backgroundColor: colors.burgundy,
@@ -2474,13 +2474,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   topicDate: {
     fontFamily: 'tajawal',
     fontSize: 10,
     color: colors.textMuted,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   delBtn: { padding: 4 },
   delBtnText: { fontSize: 16 },

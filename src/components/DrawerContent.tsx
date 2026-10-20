@@ -469,14 +469,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.burgundy,
     fontSize: 14,
     fontWeight: '700',
-    textAlign: 'right',
+    textAlign: 'left',
   },
   sub: {
     fontFamily: 'tajawal',
     color: colors.burgundyLight,
     fontSize: 11,
     fontWeight: '400',
-    textAlign: 'right',
+    textAlign: 'left',
     marginTop: 2,
   },
   closeBtn: {
@@ -513,7 +513,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 13.5,
     fontWeight: '700',
     color: colors.text,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   itemLabelActive: {
     color: colors.white,
@@ -523,7 +523,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '400',
     color: colors.textMuted,
-    textAlign: 'right',
+    textAlign: 'left',
     marginTop: 2,
   },
   itemSubActive: {
@@ -535,7 +535,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
     marginTop: 16,
     marginBottom: 4,
     paddingHorizontal: 12,

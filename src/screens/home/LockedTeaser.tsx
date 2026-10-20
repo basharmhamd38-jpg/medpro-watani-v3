@@ -69,7 +69,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'right',
+    textAlign: 'left',
     marginBottom: 6,
   },
   row: {
@@ -91,13 +91,13 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   rowDesc: {
     fontFamily: 'tajawal',
     fontSize: 12,
     color: colors.textMuted,
-    textAlign: 'right',
+    textAlign: 'left',
     marginTop: 2,
   },
 });

@@ -378,7 +378,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   featureGrid: {
     flexDirection: 'row',
@@ -407,7 +407,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 11,
     fontWeight: '400',
     color: colors.burgundy,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   invite: {
     fontFamily: 'tajawal',

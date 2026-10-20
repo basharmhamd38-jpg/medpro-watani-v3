@@ -188,14 +188,14 @@ const getStyles = (colors: ThemeColors) =>
       fontSize: 16,
       fontWeight: '700',
       color: colors.title,
-      textAlign: 'right',
-      writingDirection: 'rtl',
+      textAlign: 'left',
+      writingDirection: 'ltr',
     },
     subtitle: {
       fontSize: 12,
       color: colors.textSecondary,
-      textAlign: 'right',
-      writingDirection: 'rtl',
+      textAlign: 'left',
+      writingDirection: 'ltr',
     },
     gridWrap: {
       alignItems: 'center',

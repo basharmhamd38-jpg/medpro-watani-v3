@@ -84,7 +84,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: colors.title,
-    textAlign: 'right',
+    textAlign: 'left',
     marginHorizontal: 10,
   },
   soonCard: {

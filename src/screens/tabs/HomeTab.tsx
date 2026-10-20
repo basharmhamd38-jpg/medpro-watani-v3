@@ -150,8 +150,8 @@ export default function HomeTab() {
                 fontSize: 15,
                 fontWeight: '700',
                 color: colors.title,
-                textAlign: 'right',
-                writingDirection: 'rtl',
+                textAlign: 'left',
+                writingDirection: 'ltr',
                 marginBottom: 4,
                 paddingHorizontal: 4,
               }}>
@@ -269,7 +269,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '400',
     color: colors.burgundyLight,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   activeBadge: {
     backgroundColor: colors.successBg,
@@ -289,7 +289,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.burgundy,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
     marginBottom: 4,
   },
   welcomeSub: {
@@ -297,7 +297,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.burgundyLight,
     opacity: 0.8,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   statsRow: {
     flexDirection: 'row',
@@ -341,7 +341,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.white,
     marginTop: 8,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   shortcutPrimarySub: {
     flex: 1,
@@ -349,7 +349,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     marginTop: 4,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   shortcutSecondary: {
     flex: 1,
@@ -366,14 +366,14 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.burgundy,
     marginTop: 8,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   shortcutSecondarySub: {
     fontSize: 11,
     color: colors.burgundyLight,
     marginTop: 4,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   srCard: {
     backgroundColor: colors.burgundy,
@@ -394,7 +394,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontWeight: '700',
     color: colors.gold,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   srTitle: {
     fontSize: 14,
@@ -402,7 +402,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.white,
     marginTop: 6,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   srSub: {
     fontSize: 11,
@@ -410,7 +410,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 4,
     lineHeight: 16,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   srButton: {
     backgroundColor: colors.amber,
@@ -441,7 +441,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     marginTop: 4,
     lineHeight: 16,
     ...rtlTextStyle,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   challengeButton: {
     backgroundColor: colors.burgundy,

@@ -143,7 +143,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.white,
-    textAlign: 'right',
+    textAlign: 'left',
   },
   statsPill: {
     flexDirection: 'row',

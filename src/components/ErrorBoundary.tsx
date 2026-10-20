@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.burgundy,
     textAlign: 'center',
-    writingDirection: 'rtl',
+    writingDirection: 'ltr',
     marginBottom: 10,
   },
   subtitle: {
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textMuted,
     textAlign: 'center',
-    writingDirection: 'rtl',
+    writingDirection: 'ltr',
     lineHeight: 26,
     marginBottom: 24,
   },
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.white,
     textAlign: 'center',
-    writingDirection: 'rtl',
+    writingDirection: 'ltr',
   },
 });
 

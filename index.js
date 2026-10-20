@@ -7,11 +7,10 @@ import { getMessaging, setBackgroundMessageHandler } from '@react-native-firebas
 import App from './App';
 import { name as appName } from './app.json';
 
-// RTL إجباري — التطبيق عربي بالكامل
+// LTR تشخيصي — التطبيق باتجاه يسار-ل-يمين لاختبار فرضية أن RTL يسبب مشاكل التنسيق/التعليق
 // يجب أن يُستدعى قبل أي عرض
-// ملاحظة: بعد التثبيت يجب إغلاق التطبيق تمامًا وإعادة فتحه مرة واحدة ليأخذ الـRTL أثره
-I18nManager.allowRTL(true);
-I18nManager.forceRTL(true);
+I18nManager.allowRTL(false);
+I18nManager.forceRTL(false);
 
 // معالج الإشعارات في الخلفية — يعمل والتطبيق مغلق تمامًا
 // يجب تسجيله في المستوى الأعلى قبل أي مكون
