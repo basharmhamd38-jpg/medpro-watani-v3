@@ -7,7 +7,7 @@ import Badge, { OfflineBadge } from '../../components/Badge';
 import EmptyStateCard from '../../components/EmptyStateCard';
 import { QuestionSkeleton } from '../../components/Skeleton';
 import { haptics } from '../../utils/haptics';
-import { rtlTextStyle } from '../../utils/bidi';
+import { bidi, rtlTextStyle } from '../../utils/bidi';
 import { formatNumber } from '../../utils/numbers';
 import { Inbox } from 'lucide-react-native';
 import RichText from '../../components/RichText';
@@ -95,14 +95,25 @@ export default function QuestionScreen({ navigation, route }: { navigation: any;
   const options: string[] = q?.options ?? [];
   const correctIndex: number = typeof q?.correct_index === 'number' ? q.correct_index : 0;
 
-  // الشرح يُقصّ مرة واحدة لكل سؤال — يُعرض النص مباشرة كما هو (بدون معالجة bidi)
+  // الشرح يُقصّ ويُعزل ثنائي الاتجاه مرة واحدة لكل سؤال (bidi للمقاطع
+  // اللاتينية/الرقمية حتى لا ينقلب ترتيب النص المختلط)
   const explanationBidi = useMemo(() => {
     const raw = String(q?.explanation ?? '');
     if (!raw) return '';
     const clipped = raw.length > MAX_EXPLANATION_CHARS;
     const out = clipped ? raw.slice(0, MAX_EXPLANATION_CHARS) : raw;
-    return clipped ? `${out}\n(تم اختصار الشرح لطوله)` : out;
+    return bidi(clipped ? `${out}\n(تم اختصار الشرح لطوله)` : out);
   }, [q?.explanation]);
+
+  // نص السؤال وخياراته معزولة بـ bidi مرة واحدة لكل سؤال — أسئلة تبدأ
+  // بمصطلح لاتيني (دواء/اختصار) كانت تُعرض بترتيب مقلوب دون العزل
+  const displayQ = useMemo(() => {
+    if (!q) return { text: '', options: [] as string[] };
+    return {
+      text: bidi(q.q ?? ''),
+      options: (q.options ?? []).map((o: string) => bidi(o)),
+    };
+  }, [q]);
 
   const reset = (next: number) => {
     setIndex(((next % total) + total) % total);
@@ -204,7 +215,7 @@ export default function QuestionScreen({ navigation, route }: { navigation: any;
           </View>
 
           <View style={styles.card}>
-            <Text style={[styles.qText, rtlTextStyle]}>{q?.q ?? ''}</Text>
+            <Text style={[styles.qText, rtlTextStyle]}>{displayQ.text}</Text>
 
             <View style={styles.options}>
               {options.map((opt, i) => {
@@ -227,7 +238,7 @@ export default function QuestionScreen({ navigation, route }: { navigation: any;
                         {LETTERS[i] ?? `${i + 1}`}
                       </Text>
                     </View>
-                    <Text style={[styles.optText, rtlTextStyle]}>{opt}</Text>
+                    <Text style={[styles.optText, rtlTextStyle]}>{displayQ.options[i] ?? opt}</Text>
                   </TouchableOpacity>
                 );
               })}

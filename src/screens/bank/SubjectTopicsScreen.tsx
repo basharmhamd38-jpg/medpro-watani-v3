@@ -204,7 +204,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   // صف الموضوع في FlatList: ارتفاع ثابت يطابق getItemLayout (الفاصل عبر ItemSeparatorComponent)
   topicRow: { height: TOPIC_ROW_HEIGHT },
-  rowText: { flex: 1, alignItems: 'flex-end', marginStart: 8 },
+  // RTL: بداية المحور الأفقي = اليمين — flex-start يُلصق النص باليمين (كان flex-end بقايا عصر LTR فيدفعه لليسار)
+  rowText: { flex: 1, alignItems: 'flex-start', marginStart: 8 },
   topicName: {
                fontFamily: 'tajawal', fontSize: 14, fontWeight: '700', color: colors.text, },
   topicCount: {

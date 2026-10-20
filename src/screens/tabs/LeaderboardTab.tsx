@@ -625,7 +625,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   rankEmoji: { fontSize: 20 },
   rankLabel: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  userInfo: { flex: 1, alignItems: 'flex-end' },
+  // RTL: flex-start = اليمين (بداية النص العربي) — كان flex-end فيدفع الاسم/المستوى لليسار
+  userInfo: { flex: 1, alignItems: 'flex-start' },
   userName: {
     fontSize: 13,
     fontWeight: '700',

@@ -222,7 +222,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
   },
-  heroText: { flex: 1, alignItems: 'flex-end' },
+  // RTL: flex-start = اليمين بجانب الصورة — كان flex-end فيدفع الاسم لليسار
+  heroText: { flex: 1, alignItems: 'flex-start' },
   heroName: {
     fontFamily: 'tajawal',
     color: colors.white,

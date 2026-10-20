@@ -116,7 +116,9 @@ export default function ActivityHeatmap({ xpHistory, onDayPress }: Props) {
           {monthLabels.map((ml) => (
             <Text
               key={ml.week}
-              style={[styles.monthLabel, { right: ml.week * 17 }]}>
+              // الشبكة معروضة معكوسة (الأحدث يمينًا) — إزاحة التسمية يجب أن تعكس
+              // ترتيب الأسبوع الأصلي وإلا ظهر اسم الشهر فوق أعمدة شهر آخر
+              style={[styles.monthLabel, { right: (WEEKS - 1 - ml.week) * 17 }]}>
               {ml.label}
             </Text>
           ))}
@@ -198,7 +200,9 @@ const getStyles = (colors: ThemeColors) =>
     },
     monthRow: {
       height: 16,
-      width: WEEKS * 17,
+      // نفس عرض الشبكة بالضبط (16 عمودًا × 14 + 15 فجوة × 3) حتى تتطابق
+      // الحافة اليمنى للتسميات مع الحافة اليمنى للأعمدة
+      width: WEEKS * 14 + (WEEKS - 1) * 3,
       position: 'relative',
       marginBottom: 4,
       flexDirection: 'row',

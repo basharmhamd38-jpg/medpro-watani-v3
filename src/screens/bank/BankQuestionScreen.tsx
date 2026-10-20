@@ -12,7 +12,7 @@ import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import EmptyStateCard from '../../components/EmptyStateCard';
 import { QuestionSkeleton } from '../../components/Skeleton';
 import { haptics } from '../../utils/haptics';
-import { rtlTextStyle } from '../../utils/bidi';
+import { bidi, rtlTextStyle } from '../../utils/bidi';
 import { formatNumber } from '../../utils/numbers';
 import RichText from '../../components/RichText';
 import { enableSecureFlag, disableSecureFlag } from '../../secure';
@@ -100,14 +100,25 @@ export default function BankQuestionScreen({ navigation, route }: { navigation: 
   const options: string[] = q?.options ?? [];
   const correctIndex: number = typeof q?.correctIndex === 'number' ? q.correctIndex : 0;
 
-  // الشرح يُقصّ مرة واحدة لكل سؤال — يُعرض النص مباشرة كما هو (بدون معالجة bidi)
+  // الشرح يُقصّ ويُعزل ثنائي الاتجاه مرة واحدة لكل سؤال (bidi للمقاطع
+  // اللاتينية/الرقمية حتى لا ينقلب ترتيب النص المختلط)
   const explanationBidi = useMemo(() => {
     const raw = String(q?.explanation ?? '');
     if (!raw) return '';
     const clipped = raw.length > MAX_EXPLANATION_CHARS;
     const out = clipped ? raw.slice(0, MAX_EXPLANATION_CHARS) : raw;
-    return clipped ? `${out}\n(تم اختصار الشرح لطوله)` : out;
+    return bidi(clipped ? `${out}\n(تم اختصار الشرح لطوله)` : out);
   }, [q?.explanation]);
+
+  // نص السؤال وخياراته معزولة بـ bidi مرة واحدة لكل سؤال — أسئلة تبدأ
+  // بمصطلح لاتيني (دواء/اختصار) كانت تُعرض بترتيب مقلوب دون العزل
+  const displayQ = useMemo(() => {
+    if (!q) return { text: '', options: [] as string[] };
+    return {
+      text: bidi(q.text ?? ''),
+      options: (q.options ?? []).map((o: string) => bidi(o)),
+    };
+  }, [q]);
 
   const reset = (next: number) => {
     setIndex(((next % total) + total) % total);
@@ -215,7 +226,7 @@ export default function BankQuestionScreen({ navigation, route }: { navigation: 
           </View>
 
           <View style={styles.card}>
-            <Text style={[styles.qText, rtlTextStyle]}>{q?.text}</Text>
+            <Text style={[styles.qText, rtlTextStyle]}>{displayQ.text}</Text>
 
             <View style={styles.options}>
               {options.map((opt, i) => {
@@ -237,7 +248,7 @@ export default function BankQuestionScreen({ navigation, route }: { navigation: 
                         {LETTERS[i] ?? `${i + 1}`}
                       </Text>
                     </View>
-                    <Text style={[styles.optText, rtlTextStyle]}>{opt}</Text>
+                    <Text style={[styles.optText, rtlTextStyle]}>{displayQ.options[i] ?? opt}</Text>
                   </TouchableOpacity>
                 );
               })}

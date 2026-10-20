@@ -157,7 +157,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 10,
     marginBottom: 6,
   },
-  headText: { flex: 1, alignItems: 'flex-end' },
+  // RTL: flex-start = اليمين (بداية النص العربي) — كان flex-end فيدفعه لليسار
+  headText: { flex: 1, alignItems: 'flex-start' },
   title: {
     fontFamily: 'tajawal',
     color: colors.burgundy,
@@ -198,7 +199,7 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  itemText: { flex: 1, alignItems: 'flex-end' },
+  itemText: { flex: 1, alignItems: 'flex-start' },
   itemLabel: {
     fontFamily: 'tajawal',
     color: colors.text,

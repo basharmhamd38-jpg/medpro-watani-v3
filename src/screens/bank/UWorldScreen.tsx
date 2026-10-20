@@ -239,7 +239,8 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 14,
   },
-  backLink: { marginBottom: 8, alignSelf: 'flex-end' },
+  // رابط الرجوع عند بداية السطر (اليمين في RTL) مثل NationalSections — كان flex-end فيدفعه لليسار
+  backLink: { marginBottom: 8, alignSelf: 'flex-start' },
   backLinkText: {
     fontFamily: 'tajawal',
     fontSize: 13.5,

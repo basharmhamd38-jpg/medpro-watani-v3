@@ -9,7 +9,7 @@ import { AppText as Text } from '../../components/AppText';
 import LinearGradient from 'react-native-linear-gradient';
 import { Focus, Heart, Inbox, RotateCcw, Share2, StickyNote, Timer, X } from 'lucide-react-native';
 import { gradients, radius, shadows, useTheme, type ThemeColors } from '../../theme';
-import { rtlTextStyle } from '../../utils/bidi';
+import { bidi, rtlTextStyle } from '../../utils/bidi';
 import { formatNumber } from '../../utils/numbers';
 import EmptyStateCard from '../../components/EmptyStateCard';
 import MascotCard from '../../components/MascotCard';
@@ -58,7 +58,8 @@ function arCount(n: number): string {
 // حد أقصى لطول الشرح المعالَج في مسار العرض — شروحات البنك المدمجة تصل
 // لآلاف الأحرف، وقصّها في كل render يعلّق الواجهة.
 // القاعدة الذهبية: صفر تهنيج حتى لو على حساب الزينة.
-// ملاحظة: يُعرض النص مباشرة كما هو (بدون معالجة bidi) — مثل شاشة الترحيب.
+// ملاحظة: القصّ + العزل الثنائي الاتجاه (bidi) يُحسبان مرة واحدة لكل سؤال
+// داخل useMemo — لا معالجة داخل JSX.
 const MAX_EXPLANATION_CHARS = 4000;
 
 /** يقصّ الشرح مرة واحدة عند الحد — لا يُستدعى داخل JSX أبدًا */
@@ -165,14 +166,15 @@ export default function QuizRunner({ title, subjectId, questions, loading, onExi
   // في وضع المحاكاة: لا كشف فوري ولا شروحات حتى النهاية
   const revealed = isMock ? false : chosen !== undefined;
 
-  // نصوص السؤال الحالي تُجهَّز مرة واحدة لكل سؤال — تُعرض مباشرة كما هي
-  // (بدون معالجة bidi) مثل شاشة الترحيب
+  // نصوص السؤال الحالي تُجهَّز مرة واحدة لكل سؤال — مع عزل bidi للمقاطع
+  // اللاتينية (أسماء أدوية/مصطلحات إنجليزية ببداية السؤال) والأرقام، وإلا
+  // قلب محرك النص ترتيب الفقرة كلها عند بدئها بمقطع لاتيني
   const qBidi = useMemo(() => {
     if (!q) return null;
     return {
-      text: q.text,
-      options: q.options.map((o) => o.text),
-      explanation: processExplanation(q.explanation),
+      text: bidi(q.text),
+      options: q.options.map((o) => bidi(o.text)),
+      explanation: bidi(processExplanation(q.explanation)),
     };
   }, [q]);
 
@@ -217,18 +219,20 @@ export default function QuizRunner({ title, subjectId, questions, loading, onExi
     return { correct, wrong, unanswered, pct, wrongList };
   }, [finished, answers, questions, qOrder, total]);
 
-  // عناصر «مراجعة الأخطاء» تُجهَّز مرة واحدة عند الإنهاء — النصوص تُعرض
-  // مباشرة كما هي (بدون معالجة bidi)
+  // عناصر «مراجعة الأخطاء» تُجهَّز مرة واحدة عند الإنهاء — مع عزل bidi
+  // للمقاطع اللاتينية/الرقمية حتى لا ينقلب ترتيب النص المختلط
   const wrongListBidi = useMemo(
     () =>
       stats.wrongList.map(({ q: wq, userChoice, qIndex }) => ({
         key: `${wq.id}::${qIndex}`,
-        qText: `${qIndex + 1}. ${wq.text}`,
-        userAnswer:
+        qText: bidi(`${qIndex + 1}. ${wq.text}`),
+        userAnswer: bidi(
           `إجابتك: ${AR_LETTERS[userChoice] ?? ''} — ${wq.options[userChoice]?.text ?? ''}`,
-        rightAnswer:
+        ),
+        rightAnswer: bidi(
           `الصحيحة: ${AR_LETTERS[wq.correctIndex] ?? ''} — ${wq.options[wq.correctIndex]?.text ?? ''}`,
-        explanation: processExplanation(wq.explanation),
+        ),
+        explanation: bidi(processExplanation(wq.explanation)),
       })),
     [stats],
   );
