@@ -606,6 +606,7 @@ async function runFileLoop(
   files: ContentFile[],
   onProgress?: ProgressCallback,
   cancel?: CancelToken,
+  force = false,
 ): Promise<{ failed: string[]; questionsSoFar: number; fileSubjects: Record<string, string> }> {
   const doneMap = await readDoneFiles();
   const fileSubjects = await readFileSubjects();
@@ -616,7 +617,8 @@ async function runFileLoop(
   for (const f of files) {
     if (cancel?.cancelled) break;
     // استئناف: ملف اكتمل بنفس البصمة — لا يُعاد تنزيله
-    if (f.hash && doneMap[f.path] === f.hash) {
+    // (force = إصلاح حالة قديمة: يُتجاهَل السجل وتُعاد كتابة كل الملفات نظيفة)
+    if (!force && f.hash && doneMap[f.path] === f.hash) {
       done++;
       onProgress?.(done, files.length, f.label, questionsSoFar, failed.length);
       continue;
@@ -719,9 +721,27 @@ export async function downloadSection(
     return { ok: false, error: 'failed', stored: 0, expected: null };
   }
 
-  const { failed } = await runFileLoop(files, onProgress, cancel);
-  const stored = await countSectionStored(section);
+  // إصلاح الحالة القديمة الفاسدة (21 أكتوبر 2026 — شكوى «الأسئلة مكررة»):
+  // سجلّ البصمات يدّعي اكتمال كل ملفات القسم، لكن عدّ التخزين الفعلي يكذّبه
+  // (نقصٌ دون 95٪ أو زيادةٌ فوق 105٪ — صفوف موروثة من أجيال بناء أقدم بقيت
+  // لأن السجل قال «منجز» فلم تُعَد كتابتها أبدًا). عندها لا ثقة بالسجل:
+  // إعادة إدخال نظيفة كاملة لملفات القسم (force) تشفي الصفوف وتجدّد السجل.
+  // أما التحميل المتقطع (سجلّ ناقص أصلًا) فيبقى استئنافه الطبيعي كما هو.
   const expected = files.reduce((s, f) => s + f.count, 0);
+  const storedBefore = await countSectionStored(section);
+  let force = false;
+  if (
+    storedBefore > 0 &&
+    expected > 0 &&
+    (storedBefore < Math.floor(expected * 0.95) ||
+      storedBefore > Math.ceil(expected * 1.05))
+  ) {
+    const doneMap = await readDoneFiles();
+    force = files.every((f) => !f.hash || doneMap[f.path] === f.hash);
+  }
+
+  const { failed } = await runFileLoop(files, onProgress, cancel, force);
+  const stored = await countSectionStored(section);
   await persistSectionExpected(section, expected);
 
   if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed, stored, expected };
