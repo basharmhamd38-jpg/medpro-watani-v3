@@ -6,7 +6,7 @@ import { Check } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import Badge, { OfflineBadge } from '../../components/Badge';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
-import { isOfflineReady } from '../../sync/offlineSync';
+import { getSubjectQuestions } from '../../db/bankRead';
 
 // شاشة تفاصيل المادة/الدورة (المواصفة 6.7)
 // route.params: { subjectId, title, kind, sessionLabel? }
@@ -15,15 +15,20 @@ export default function SubjectDetailScreen({ navigation, route }: { navigation:
   const styles = useMemo(() => getStyles(colors), [colors]);
   const { subjectId, title, sessionLabel } = route?.params ?? {};
 
-  // الحالة الحقيقية: التحميل الكامل يتم مرة واحدة عند أول تشغيل (أوفلاين-أول) —
-  // لا زر تحميل ولا محاكاة هنا؛ الشاشة تعرض الشارة فقط عند اكتمال التحميل.
+  // الحالة الحقيقية من SQLite نفسها: الشارة تظهر فقط إن وُجدت أسئلة هذه المادة
+  // محفوظة فعليًا على الجهاز. التحميل يتم بزر القسم داخل بنك الأسئلة —
+  // لا تحميل تلقائيًا عند دخول التطبيق (أمر الدكتور 21 أكتوبر 2026).
   const [offlineReady, setOfflineReady] = useState<boolean | null>(null);
 
   useEffect(() => {
     let alive = true;
-    isOfflineReady()
-      .then(v => {
-        if (alive) setOfflineReady(v);
+    if (!subjectId) {
+      setOfflineReady(false);
+      return;
+    }
+    getSubjectQuestions(subjectId, 1)
+      .then(rows => {
+        if (alive) setOfflineReady(rows.length > 0);
       })
       .catch(() => {
         if (alive) setOfflineReady(false);
@@ -31,7 +36,7 @@ export default function SubjectDetailScreen({ navigation, route }: { navigation:
     return () => {
       alive = false;
     };
-  }, []);
+  }, [subjectId]);
 
   const startPractice = () => {
     navigation.navigate('Question', { subjectId, title });
@@ -63,7 +68,7 @@ export default function SubjectDetailScreen({ navigation, route }: { navigation:
             </View>
           ) : (
             <Text style={styles.pendingNote}>
-              يُحمَّل بنك الأسئلة تلقائيًا عند أول تشغيل للتطبيق
+              أسئلة هذه المادة غير محمّلة بعد — حمّل أسئلة قسمها بزر التحميل داخل تبويب بنك الأسئلة
             </Text>
           )}
         </View>
@@ -78,7 +83,7 @@ export default function SubjectDetailScreen({ navigation, route }: { navigation:
                 <Text style={styles.donePillText}>تم التحميل</Text>
               </View>
             ) : (
-              <Text style={styles.readyText}>بانتظار التحميل الكامل</Text>
+              <Text style={styles.readyText}>غير محمّلة بعد</Text>
             )}
           </View>
         </View>

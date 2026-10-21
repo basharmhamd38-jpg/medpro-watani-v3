@@ -8,6 +8,7 @@ import { Calendar, ChevronDown, Layers, Lock } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import Badge from '../../components/Badge';
 import EmptyStateCard from '../../components/EmptyStateCard';
+import SectionDownloadCard from '../../components/SectionDownloadCard';
 import { SkeletonBlock } from '../../components/Skeleton';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
 import {
@@ -98,6 +99,8 @@ export default function NationalSections({ navigation }: { navigation: any }) {
   // المواد: الـseed يظهر فورًا، ثم تُستبدل بنتائج Firestore الحية عند وصولها
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
+  // يُزاد بعد اكتمال تحميل القسم لإعادة جلب المواد من SQLite
+  const [dlTick, setDlTick] = useState(0);
 
   // التنقيب للجلسات: المادة المختارة ← جلساتها من Firestore
   const [activeSubject, setActiveSubject] = useState<Subject | null>(null);
@@ -137,7 +140,7 @@ export default function NationalSections({ navigation }: { navigation: any }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [dlTick]);
 
   const sections = useMemo(() => {
     const buckets: Subject[][] = SECTION_NAMES.map(() => []);
@@ -254,7 +257,7 @@ export default function NationalSections({ navigation }: { navigation: any }) {
       <EmptyStateCard
         icon={Calendar}
         title="لا توجد جلسات"
-        message="تعذّر تحميل جلسات هذه المادة — تحقق من الاتصال وحاول مجددًا"
+        message="لا توجد جلسات محفوظة لهذه المادة على الجهاز — إن لم تُحمَّل دورات الوطني بعد فاستخدم زر التحميل في أعلى صفحة القسم"
         actionLabel="إعادة المحاولة"
         onAction={() => loadSessions(activeSubject)}
       />
@@ -320,13 +323,16 @@ export default function NationalSections({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       </View>
 
+      {/* تحميل القسم من زرّه هنا — لا تحميل عند دخول التطبيق (أمر الدكتور) */}
+      <SectionDownloadCard section="dawrat" onCompleted={() => setDlTick((t) => t + 1)} />
+
       {subjectsLoading && subjects.length === 0 ? (
         <SubjectsSkeleton />
       ) : subjects.length === 0 ? (
         <EmptyStateCard
           icon={Layers}
-          title="لا توجد مواد"
-          message="تعذّر تحميل مواد الدورات الوطنية — تحقق من الاتصال وحاول مجددًا"
+          title="لا توجد مواد محمّلة"
+          message="أسئلة دورات الوطني غير محمّلة على جهازك بعد — استخدم زر التحميل بالأعلى لتحميلها مرة واحدة والعمل دون اتصال"
           actionLabel="إعادة المحاولة"
           onAction={() => {
             setSubjectsLoading(true);

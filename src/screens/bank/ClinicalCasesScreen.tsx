@@ -8,6 +8,7 @@ import { Inbox } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
 import EmptyStateCard from '../../components/EmptyStateCard';
+import SectionDownloadCard from '../../components/SectionDownloadCard';
 import { SkeletonBlock } from '../../components/Skeleton';
 import QuizRunner, { arCount } from './QuizRunner';
 import {
@@ -52,6 +53,8 @@ export default function ClinicalCasesScreen() {
   const [topic, setTopic] = useState<QuizTopic | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+  // يُزاد بعد اكتمال تحميل القسم لإعادة جلب المواد
+  const [dlTick, setDlTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -68,7 +71,7 @@ export default function ClinicalCasesScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [dlTick]);
 
   const openSubject = (s: QuizSubject) => {
     setSubject(s);
@@ -134,13 +137,15 @@ export default function ClinicalCasesScreen() {
           <Text style={[styles.sub, rtlTextStyle]}>
             {'حالات سريرية تفاعلية — اختر المادة لبدء الاختبار'}
           </Text>
+          {/* تحميل القسم من زرّه هنا — لا تحميل عند دخول التطبيق (أمر الدكتور) */}
+          <SectionDownloadCard section="cases" onCompleted={() => setDlTick((t) => t + 1)} />
           {subjectsLoading ? (
             <ListSkeleton />
           ) : subjects.length === 0 ? (
             <EmptyStateCard
               icon={Inbox}
-              title="لا توجد مواد"
-              message="تعذّر تحميل الحالات السريرية — تحقق من الاتصال وحاول مجددًا"
+              title="لا توجد حالات محمّلة"
+              message="الحالات السريرية غير محمّلة على جهازك بعد — استخدم زر التحميل بالأعلى لتحميلها مرة واحدة والعمل دون اتصال"
               actionLabel="إعادة المحاولة"
               onAction={() => {
                 setSubjectsLoading(true);

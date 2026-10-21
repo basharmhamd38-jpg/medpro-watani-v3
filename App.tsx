@@ -12,7 +12,7 @@ I18nManager.forceRTL(true);
 // (src/components/AppText.tsx) — كل ملف يستورد `Text` منه.
 // (لا تستخدم Text.defaultProps — React 19 أزال دعمه نهائيًا فيُتجاهل بصمت)
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -27,8 +27,6 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { evaluateSmartNotifications } from './src/notifications/smart';
 import { BadgeCelebrationHost } from './src/components/BadgeCelebration';
 import SplashScreen from './src/screens/SplashScreen';
-import FirstLaunchDownloadScreen from './src/screens/FirstLaunchDownloadScreen';
-import { isOfflineReady, backgroundSync } from './src/sync/offlineSync';
 import { selfTestSecureCache } from './src/content/secureCache';
 import { ThemeProvider, useTheme } from './src/theme';
 
@@ -40,15 +38,9 @@ function ThemedStatusBar() {
 }
 
 // ثيم التنقل — يمنع الوميض الأبيض عند الإقلاع/التنقل في الوضع الليلي
-function ThemedNavigator({
-  ready,
-  needsDownload,
-  onDone,
-}: {
-  ready: boolean;
-  needsDownload: boolean;
-  onDone: () => void;
-}) {
+// لا بوابة تحميل هنا أبدًا (أمر الدكتور 21 أكتوبر 2026): بعد الافتتاحية
+// يفتح التطبيق على واجهته مباشرة — المحتوى يُحمَّل من أزرار الأقسام فقط.
+function ThemedNavigator({ ready }: { ready: boolean }) {
   const { isDark, colors } = useTheme();
   const navTheme = {
     ...(isDark ? DarkTheme : DefaultTheme),
@@ -63,9 +55,7 @@ function ThemedNavigator({
   };
   return (
     <NavigationContainer theme={navTheme}>
-      {needsDownload && !ready ? (
-        <FirstLaunchDownloadScreen onDone={onDone} />
-      ) : ready ? (
+      {ready ? (
         <ErrorBoundary>
           <RootNavigator />
         </ErrorBoundary>
@@ -78,25 +68,6 @@ function ThemedNavigator({
 
 function App() {
   const [ready, setReady] = useState(false);
-  const [needsDownload, setNeedsDownload] = useState(false);
-  // مرجع متزامن — يُقرأ داخل setTimeout بعد اكتمال الإقلاع
-  const needsDownloadRef = useRef(false);
-
-  // تُستدعى من شاشة التحميل عند اكتمالها: إعادة فحص الجاهزية ثم الدخول
-  const handleDownloadDone = useCallback(() => {
-    isOfflineReady()
-      .then(ok => {
-        setNeedsDownload(!ok);
-        setReady(true);
-      })
-      .catch(() => {
-        // تعذّر الفحص — الدخول على أي حال (التحميل اكتمل من الشاشة)
-        setNeedsDownload(false);
-        setReady(true);
-      });
-    // مزامنة خلفية لمرة واحدة — صامتة ولا تعلق الواجهة
-    backgroundSync().catch(() => {});
-  }, []);
 
   useEffect(() => {
     const bootStart = Date.now();
@@ -105,16 +76,10 @@ function App() {
         // مفتاح تشفير القاعدة (مشتق لكل جهاز) قبل فتحها — ترقية تلقائية للقديم
         await ensureDatabaseKey();
         await initDatabase();
-        // فحص جاهزية الأوفلاين قبل عرض الملاح: التحميل الكامل عند أول تشغيل فقط
-        try {
-          const offline = await isOfflineReady();
-          needsDownloadRef.current = !offline;
-          setNeedsDownload(!offline);
-        } catch {
-          /* فشل الفحص — يُكمل التطبيق بالحد الأدنى */
-        }
+        // لا فحص جاهزية/تحميل محتوى عند الإقلاع إطلاقًا — الدخول مباشر دائمًا،
+        // والمحتوى يصل فقط من أزرار تحميل الأقسام داخل بنك الأسئلة.
         // ملاحظة: seedBundledData أُزيلت — البيانات المدمجة القديمة (kind='watani')
-        // لم تعد تُقرأ من أي شاشة بعد الترحيل لـbankRead؛ التحميل الأول هو المصدر الوحيد.
+        // لم تعد تُقرأ من أي شاشة بعد الترحيل لـbankRead.
         await initAuthStorage();
         // فحص ربط كود التفعيل بالجهاز — صامت ولا يعطل الإقلاع أبدًا:
         // بلا إنترنت يُبقي التفعيل المحلي، وربطٌ لجهاز آخر يُلغي التفعيل
@@ -141,10 +106,8 @@ function App() {
         const elapsed = Date.now() - bootStart;
         const wait = Math.max(0, MIN_SPLASH_MS - elapsed);
         setTimeout(() => {
-          if (needsDownloadRef.current) return; // شاشة التحميل تتولى الدخول عبر onDone
+          // دخول مباشر دائمًا — بلا أي بوابة أو تنزيل محتوى عند الإقلاع
           setReady(true);
-          // مزامنة خلفية لمرة واحدة بعد اكتمال الإقلاع — صامتة ولا تعلق الواجهة
-          backgroundSync().catch(() => {});
         }, wait);
       }
     })();
@@ -156,11 +119,7 @@ function App() {
         <ThemeProvider>
           <ToastProvider>
             <ThemedStatusBar />
-            <ThemedNavigator
-              ready={ready}
-              needsDownload={needsDownload}
-              onDone={handleDownloadDone}
-            />
+            <ThemedNavigator ready={ready} />
             <BadgeCelebrationHost />
           </ToastProvider>
         </ThemeProvider>

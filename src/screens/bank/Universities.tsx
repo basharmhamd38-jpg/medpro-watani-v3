@@ -11,6 +11,7 @@ import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import Badge from '../../components/Badge';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
 import EmptyStateCard from '../../components/EmptyStateCard';
+import SectionDownloadCard from '../../components/SectionDownloadCard';
 import { SkeletonBlock } from '../../components/Skeleton';
 import { canOpenBankSubject } from '../../payment/gates';
 import { isActivated } from '../../auth/auth';
@@ -53,6 +54,8 @@ export default function Universities({ navigation }: { navigation: any }) {
   const [view, setView] = useState<BankView>({ kind: 'list' });
   const [items, setItems] = useState<(BankSubject | BankSession)[]>([]);
   const [loading, setLoading] = useState(false);
+  // يُزاد بعد اكتمال تحميل القسم لإعادة جلب الجامعات/المواد من SQLite
+  const [dlTick, setDlTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -64,7 +67,7 @@ export default function Universities({ navigation }: { navigation: any }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [dlTick]);
 
   useEffect(() => {
     let alive = true;
@@ -88,7 +91,7 @@ export default function Universities({ navigation }: { navigation: any }) {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [dlTick]);
 
   if (lock) {
     return (
@@ -225,7 +228,7 @@ export default function Universities({ navigation }: { navigation: any }) {
             <EmptyStateCard
               icon={Building2}
               title="لا توجد بيانات"
-              message="تعذّر التحميل — تحقق من الاتصال وحاول مجددًا"
+              message="لا توجد بيانات محفوظة على الجهاز هنا — حمّل أسئلة دورات الجامعات بزر التحميل في أعلى صفحة القسم ثم أعد المحاولة"
               actionLabel="إعادة المحاولة"
               onAction={retry}
             />
@@ -269,6 +272,8 @@ export default function Universities({ navigation }: { navigation: any }) {
       style={styles.scroll}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}>
+      {/* تحميل القسم من زرّه هنا — لا تحميل عند دخول التطبيق (أمر الدكتور) */}
+      <SectionDownloadCard section="university" onCompleted={() => setDlTick((t) => t + 1)} />
       <View style={styles.card}>
         <Text style={styles.cardTitle}>تصفح البنية — {unis.length} جامعات</Text>
         <Text style={styles.note}>

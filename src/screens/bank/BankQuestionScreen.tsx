@@ -206,7 +206,7 @@ export default function BankQuestionScreen({ navigation, route }: { navigation: 
         <EmptyStateCard
           icon={Inbox}
           title="لا توجد أسئلة"
-          message="تعذّر تحميل أسئلة هذه الجلسة — تحقق من الاتصال وحاول مجددًا"
+          message="لا توجد أسئلة محفوظة لهذه الجلسة على الجهاز — حمّل أسئلة القسم بزر التحميل داخل تبويب بنك الأسئلة أولًا"
           actionLabel="إعادة المحاولة"
           onAction={load}
         />

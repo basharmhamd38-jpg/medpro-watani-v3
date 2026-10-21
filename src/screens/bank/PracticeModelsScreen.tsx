@@ -8,6 +8,7 @@ import { Award, Inbox } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
 import EmptyStateCard from '../../components/EmptyStateCard';
+import SectionDownloadCard from '../../components/SectionDownloadCard';
 import { SkeletonBlock } from '../../components/Skeleton';
 import QuizRunner, { arCount } from './QuizRunner';
 import {
@@ -43,6 +44,8 @@ export default function PracticeModelsScreen() {
   const [model, setModel] = useState<QuizSubject | null>(null);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+  // يُزاد بعد اكتمال تحميل القسم لإعادة جلب النماذج
+  const [dlTick, setDlTick] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -59,7 +62,7 @@ export default function PracticeModelsScreen() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [dlTick]);
 
   const openModel = (m: QuizSubject) => {
     setModel(m);
@@ -99,13 +102,15 @@ export default function PracticeModelsScreen() {
       <Text style={[styles.sub, rtlTextStyle]}>
         {bidi('نماذج USMLE وNBME الرسمية — اختر النموذج لبدء الاختبار')}
       </Text>
+      {/* تحميل القسم من زرّه هنا — لا تحميل عند دخول التطبيق (أمر الدكتور) */}
+      <SectionDownloadCard section="practice" onCompleted={() => setDlTick((t) => t + 1)} />
       {modelsLoading ? (
         <ListSkeleton />
       ) : models.length === 0 ? (
         <EmptyStateCard
           icon={Inbox}
-          title="لا توجد نماذج"
-          message="تعذّر تحميل النماذج التدريبية — تحقق من الاتصال وحاول مجددًا"
+          title="لا توجد نماذج محمّلة"
+          message="النماذج التدريبية غير محمّلة على جهازك بعد — استخدم زر التحميل بالأعلى لتحميلها مرة واحدة والعمل دون اتصال"
           actionLabel="إعادة المحاولة"
           onAction={() => {
             setModelsLoading(true);

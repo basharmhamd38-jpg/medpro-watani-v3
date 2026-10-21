@@ -1,6 +1,12 @@
-// طبقة «أوفلاين-أول» لتطبيق وطني.
-// - التحميل الكامل عند أول تشغيل (firstLaunchDownload) مع تقدم وإلغاء.
-// - مزامنة صامتة بالخلفية (backgroundSync) عند تغيّر الـmanifest.
+// طبقة «أوفلاين-أول» لتطبيق وطني — نموذج التحميل بأمر الدكتور (21 أكتوبر 2026):
+// - لا بوابة تحميل عند الدخول إطلاقًا: التطبيق يفتح مباشرة دائمًا.
+// - المحتوى يصل فقط من زر تحميل داخل كل قسم (downloadSection) — بنطاق القسم:
+//   بنك الوطني questions/ | دورات الوطني dawrat/ | الجامعات dawrat_jami3at/
+//   الحالات cases.json | النماذج practice_models/
+// - اكتمال أي قسم يُتحقق منه فعليًا من التخزين المحلي (SQLite/الكاش المشفّر):
+//   عدد محفوظ ≥ 95٪ من عدد الـmanifest — لا حالة نجاح شكلية أبدًا.
+// - firstLaunchDownload باقية للتوافق فقط (لا منادي لها من الواجهة بعد الآن)،
+//   وbackgroundSync لم تعد تُستدعى عند الإقلاع — لا تنزيل محتوى تلقائيًا أبدًا.
 // المصدر: Cloudflare CDN للقراءة فقط — لا كتابة ولا حذف في Firestore.
 // التخزين: SQLite المشفرة (INSERT OR REPLACE داخل transaction لكل ملف).
 // الـids ثابتة عبر المزامنات (انظر normalize.ts) فيعمل الـupsert بأمان.
@@ -18,6 +24,7 @@ import {
   type CdnManifest,
 } from '../content/cloudflare';
 import { setLocalContentVersion } from '../content/contentVersion';
+import { secureGet } from '../content/secureCache';
 import {
   normalizeFile,
   normalizeCasesFile,
@@ -88,29 +95,21 @@ export async function isOfflineReady(): Promise<boolean> {
   }
 }
 
-/**
- * تعداد ملفات المحتوى من الـCDN:
- * شاردات الأسئلة (من questions.json) + dawrat/* + dawrat_jami3at/* باكتشاف ديناميكي
- * + الحالات السريرية cases.json (آخر القائمة — تُحمَّل بعد الأسئلة).
- * ملاحظة: cases_de.json (ألمانية) لا تُدخَل أبدًا.
- */
-async function collectContentFiles(manifest: CdnManifest): Promise<ContentFile[]> {
-  const seen = new Set<string>();
-  const out: ContentFile[] = [];
-  const push = (path: string, label: string) => {
-    if (!seen.has(path)) {
-      seen.add(path);
-      const info = manifest.files[path];
-      out.push({
-        path,
-        label,
-        hash: info?.hash ?? '',
-        size: info?.size ?? 0,
-        count: info?.count ?? 0,
-      });
-    }
+/** بناء ContentFile من معلومات الـmanifest */
+function toContentFile(manifest: CdnManifest, path: string, label: string): ContentFile {
+  const info = manifest.files[path];
+  return {
+    path,
+    label,
+    hash: info?.hash ?? '',
+    size: info?.size ?? 0,
+    count: info?.count ?? 0,
   };
-  // 1) شاردات بنك الأسئلة
+}
+
+/** شاردات بنك الوطني (questions/*.json) من فهرس questions.json */
+async function collectBankFiles(manifest: CdnManifest): Promise<ContentFile[]> {
+  const out: ContentFile[] = [];
   try {
     const idx = await getQuestionsIndex();
     for (const sh of idx?.shards ?? []) {
@@ -121,17 +120,27 @@ async function collectContentFiles(manifest: CdnManifest): Promise<ContentFile[]
         manifest.files[p] &&
         (manifest.files[p].count ?? 0) > 0
       ) {
-        push(p, sh.subject_name || labelForPath(p));
+        out.push(toContentFile(manifest, p, sh.subject_name || labelForPath(p)));
       }
     }
   } catch {
-    /* تجاهل — تُكمل الدورات */
+    /* تجاهل — قسم بلا ملفات */
   }
-  // 2) دورات الوطني ودورات الجامعات — اكتشاف ديناميكي من الـmanifest
-  const dawrat = await discoverFiles('dawrat').catch(() => [] as string[]);
-  const univ = await discoverFiles('dawrat_jami3at').catch(() => [] as string[]);
-  for (const p of [...dawrat, ...univ]) push(p, labelForPath(p));
-  // 3) النماذج التدريبية — ليست في الـmanifest: تُكتشف من فهرسها الخاص
+  return out;
+}
+
+/** ملفات بادئة كاملة باكتشاف ديناميكي من الـmanifest (dawrat/ أو dawrat_jami3at/) */
+async function collectPrefixFiles(manifest: CdnManifest, prefix: string): Promise<ContentFile[]> {
+  const paths = await discoverFiles(prefix).catch(() => [] as string[]);
+  return paths.map((p) => toContentFile(manifest, p, labelForPath(p)));
+}
+
+/**
+ * النماذج التدريبية — ليست في الـmanifest: تُكتشف من فهرسها الخاص
+ * (practice_models/index.json). بصمة كل نموذج = عدده المعلن في الفهرس.
+ */
+async function collectPracticeFiles(): Promise<ContentFile[]> {
+  const out: ContentFile[] = [];
   try {
     const pmIdx = await downloadFile('practice_models/index.json');
     if (Array.isArray(pmIdx) && pmIdx.length > 0) {
@@ -157,11 +166,73 @@ async function collectContentFiles(manifest: CdnManifest): Promise<ContentFile[]
   } catch {
     /* تجاهل — النماذج تُكمل لاحقًا عبر الاستئناف */
   }
-  // 4) الحالات السريرية (آخرًا — لا تؤخر الأسئلة الحرجة)
-  if (manifest.files['cases.json'] && (manifest.files['cases.json'].count ?? 0) > 0) {
-    push('cases.json', 'الحالات السريرية');
-  }
   return out;
+}
+
+/** ملف الحالات السريرية (إن وُجد بالـmanifest بعدّ موجب) */
+function collectCasesFiles(manifest: CdnManifest): ContentFile[] {
+  if (manifest.files['cases.json'] && (manifest.files['cases.json'].count ?? 0) > 0) {
+    return [toContentFile(manifest, 'cases.json', 'الحالات السريرية')];
+  }
+  return [];
+}
+
+/**
+ * تعداد كل ملفات المحتوى من الـCDN (للتوافق مع firstLaunchDownload):
+ * شاردات بنك الوطني + dawrat/* + dawrat_jami3at/* + النماذج + الحالات أخيرًا.
+ * ملاحظة: cases_de.json (ألمانية) لا تُدخَل أبدًا.
+ */
+async function collectContentFiles(manifest: CdnManifest): Promise<ContentFile[]> {
+  const seen = new Set<string>();
+  const out: ContentFile[] = [];
+  const add = (files: ContentFile[]) => {
+    for (const f of files) {
+      if (!seen.has(f.path)) {
+        seen.add(f.path);
+        out.push(f);
+      }
+    }
+  };
+  add(await collectBankFiles(manifest));
+  add(await collectPrefixFiles(manifest, 'dawrat'));
+  add(await collectPrefixFiles(manifest, 'dawrat_jami3at'));
+  add(await collectPracticeFiles());
+  add(collectCasesFiles(manifest));
+  return out;
+}
+
+// ─── أقسام المحتوى (نطاقات التحميل المستقلة) ───
+
+/** قسم محتوى = تبويب في بنك الأسئلة له زر تحميله الخاص */
+export type SectionId = 'bank' | 'dawrat' | 'university' | 'cases' | 'practice';
+
+/** نطاق القسم من بادئة المسار — dawrat_jami3at تسبق dawrat (الأطول أولًا) */
+export function sectionOfPath(path: string): SectionId | null {
+  if (path.startsWith('questions/')) return 'bank';
+  if (path.startsWith('dawrat_jami3at/')) return 'university';
+  if (path.startsWith('dawrat/')) return 'dawrat';
+  if (path === 'cases.json') return 'cases';
+  if (path.startsWith('practice_models/')) return 'practice';
+  return null;
+}
+
+/** ملفات قسم واحد فقط — أساس زر تحميل القسم */
+async function collectSectionFiles(
+  manifest: CdnManifest,
+  section: SectionId,
+): Promise<ContentFile[]> {
+  switch (section) {
+    case 'bank':
+      return collectBankFiles(manifest);
+    case 'dawrat':
+      return collectPrefixFiles(manifest, 'dawrat');
+    case 'university':
+      return collectPrefixFiles(manifest, 'dawrat_jami3at');
+    case 'cases':
+      return collectCasesFiles(manifest);
+    case 'practice':
+      return collectPracticeFiles();
+  }
 }
 
 /** كتابة ملف مُطبَّع في SQLite — transaction واحدة لكل ملف */
@@ -378,25 +449,100 @@ async function countStoredContent(): Promise<{ questions: number; cases: number 
 }
 
 /**
- * التحميل الكامل عند أول تشغيل — بمعيار «زر تحميل» صريح:
- * manifest ← كل الملفات ← تطبيع ← SQLite + تعبئة كاش القراءة.
- * ضمانات (تشخيص 20 أكتوبر 2026):
- * - **استئناف:** كل ملف ناجح يُسجَّل فورًا (مسار←بصمة)؛ إعادة المحاولة تتخطى المنجز.
- * - **فشل ملف لا يقتل الباقي:** يُجمع في قائمة الفاشلة ويُستكمل التحميل.
- * - **مهلات واقعية:** الملفات الكبيرة (>2MB) بمهلة 240s و3 محاولات.
- * - **تحقق اكتمال:** الجاهزية لا تُضبط إلا بصفر فاشلة + أسئلة محفوظة ≥ 95٪ من المتوقع.
- * - فشل الـmanifest ← 'no-internet'؛ إلغاء ← 'cancelled'؛ نقص ← 'failed' + failed[].
+ * عدد أسئلة قسم محفوظة فعليًا على الجهاز — من التخزين نفسه لا من أي علامة:
+ * - bank/dawrat/university: صفوف questions المنسوبة لمواد النوع عبر JOIN subjects.
+ * - cases: صفوف virtual_cases.
+ * - practice: النماذج لا تدخل SQLite — تُعدّ أسئلة ملفاتها المحفوظة بالكاش المشفّر
+ *   (pm_model_<id>) مقابل فهرسها المحفوظ (pm_index).
  */
-export async function firstLaunchDownload(
+export async function countSectionStored(section: SectionId): Promise<number> {
+  try {
+    const db = getDB();
+    if (section === 'cases') {
+      const r = await db.execute('SELECT COUNT(*) AS c FROM virtual_cases');
+      return Number((r.rows as any[])?.[0]?.c ?? 0);
+    }
+    if (section === 'practice') {
+      const idx = await secureGet<any>('pm_index').catch(() => null);
+      if (!Array.isArray(idx)) return 0;
+      let n = 0;
+      for (const m of idx) {
+        const id = String((m as any)?.model_id ?? '');
+        if (!id) continue;
+        const doc = await secureGet<any>(`pm_model_${id}`).catch(() => null);
+        if (doc && Array.isArray((doc as any).questions)) {
+          n += (doc as any).questions.length;
+        }
+      }
+      return n;
+    }
+    const r = await db.execute(
+      'SELECT COUNT(*) AS c FROM questions q JOIN subjects s ON s.id = q.subject_id WHERE s.kind = ?',
+      [section],
+    );
+    return Number((r.rows as any[])?.[0]?.c ?? 0);
+  } catch {
+    return 0;
+  }
+}
+
+export type SectionState = 'empty' | 'partial' | 'complete' | 'outdated';
+
+export interface SectionStatus {
+  section: SectionId;
+  /** أسئلة محفوظة فعليًا على الجهاز */
+  stored: number;
+  /** أسئلة القسم المتوقعة من الـmanifest — null عند تعذّر جلب الـmanifest (أوفلاين) */
+  expected: number | null;
+  /** ملفات تغيّرت بصمتها على الـCDN ولم تُحدَّث محليًا بعد */
+  outdated: number;
+  state: SectionState;
+}
+
+/**
+ * حالة قسم حقيقية: مخزون الجهاز من التخزين نفسه + المتوقع من الـmanifest.
+ * الاكتمال (complete) يتطلب مخزونًا ≥ 95٪ من المتوقع — تمامًا كتحقق التحميل.
+ * عند غياب الـmanifest (أوفلاين) يُحكم بالمخزون وحده: موجود ← complete، صفر ← empty.
+ */
+export async function getSectionStatus(section: SectionId): Promise<SectionStatus> {
+  const stored = await countSectionStored(section);
+  const manifest = await fetchManifest().catch(() => null);
+  let expected: number | null = null;
+  let outdated = 0;
+  if (manifest && manifest.files) {
+    const files = await collectSectionFiles(manifest, section);
+    expected = files.reduce((s, f) => s + f.count, 0);
+    const doneMap = await readDoneFiles();
+    outdated = files.filter((f) => f.hash && doneMap[f.path] !== f.hash).length;
+  }
+  let state: SectionState;
+  if (stored === 0) {
+    state = 'empty';
+  } else if (expected !== null && expected > 0 && stored < Math.floor(expected * 0.95)) {
+    state = 'partial';
+  } else if (expected !== null && outdated > 0) {
+    state = 'outdated';
+  } else {
+    state = 'complete';
+  }
+  return { section, stored, expected, outdated, state };
+}
+
+/**
+ * حلقة تنزيل ملفات مشتركة (التحميل الكلي وأزرار الأقسام) — الضمانات:
+ * - **استئناف:** كل ملف ناجح يُسجَّل فورًا في cdn_done_files (مسار←بصمة)؛
+ *   إعادة المحاولة تتخطى المنجز بنفس البصمة — لا إعادة تنزيل قسرية أبدًا.
+ * - **فشل ملف لا يقتل الباقي:** يُجمع في failed ويُستكمل الباقي.
+ * - **مهلات واقعية:** الملفات الكبيرة (>2MB) بمهلة 240s و3 محاولات.
+ * - كل ملف ناجح: تطبيع ← SQLite + تعبئة كاش القراءة (primeDownloadedFile)
+ *   فتقرأه الشاشات أوفلاين فورًا.
+ * تتوقف الحلقة عند الإلغاء وتُعيد ما أُنجز في failed/questionsSoFar.
+ */
+async function runFileLoop(
+  files: ContentFile[],
   onProgress?: ProgressCallback,
   cancel?: CancelToken,
-): Promise<FirstLaunchResult> {
-  const manifest = await fetchManifest().catch(() => null);
-  if (!manifest || !manifest.files) return { ok: false, error: 'no-internet' };
-  const files = await collectContentFiles(manifest);
-  if (files.length === 0) return { ok: false, error: 'no-internet' };
-
-  const db = getDB();
+): Promise<{ failed: string[]; questionsSoFar: number; fileSubjects: Record<string, string> }> {
   const doneMap = await readDoneFiles();
   const fileSubjects = await readFileSubjects();
   const failed: string[] = [];
@@ -404,7 +550,7 @@ export async function firstLaunchDownload(
   let questionsSoFar = 0;
 
   for (const f of files) {
-    if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed };
+    if (cancel?.cancelled) break;
     // استئناف: ملف اكتمل بنفس البصمة — لا يُعاد تنزيله
     if (f.hash && doneMap[f.path] === f.hash) {
       done++;
@@ -414,10 +560,10 @@ export async function firstLaunchDownload(
     const timeoutMs = f.size > 2_000_000 ? 240_000 : 90_000;
     let data: any = null;
     for (let attempt = 0; attempt < 3 && !data; attempt++) {
-      if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed };
+      if (cancel?.cancelled) break;
       data = await downloadFile(f.path, cancel, timeoutMs);
     }
-    if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed };
+    if (cancel?.cancelled) break;
     if (!data) {
       failed.push(f.path);
       done++;
@@ -430,8 +576,14 @@ export async function firstLaunchDownload(
         if (rows && rows.length > 0) {
           await upsertVirtualCases(rows);
           fileSubjects[f.path] = CASES_SUBJECT_MARKER;
+          questionsSoFar += rows.length;
         }
-      } else if (!f.path.startsWith('practice_models/')) {
+      } else if (f.path.startsWith('practice_models/')) {
+        // النماذج لا تدخل SQLite — تُحفظ بالكاش المشفّر عبر primeDownloadedFile
+        if (Array.isArray((data as any)?.questions)) {
+          questionsSoFar += (data as any).questions.length;
+        }
+      } else {
         const nf = normalizeFile(f.path, data);
         if (nf) {
           await upsertNormalizedFile(nf);
@@ -450,6 +602,76 @@ export async function firstLaunchDownload(
     done++;
     onProgress?.(done, files.length, f.label, questionsSoFar, failed.length);
   }
+
+  return { failed, questionsSoFar, fileSubjects };
+}
+
+export interface SectionDownloadResult {
+  ok: boolean;
+  error?: FirstLaunchError;
+  /** مسارات الملفات التي فشل تحميلها (للاستئناف لاحقًا) */
+  failed?: string[];
+  /** أسئلة القسم المحفوظة فعليًا بعد المحاولة — من التخزين نفسه */
+  stored: number;
+  /** أسئلة القسم المتوقعة من الـmanifest */
+  expected: number | null;
+}
+
+/**
+ * تحميل قسم واحد من زرّه داخل تبويبه — النموذج المعتمد بأمر الدكتور:
+ * ملفات القسم فقط (بنطاق بادئته) ← تطبيع ← تخزين محلي + كاش القراءة.
+ * النجاح (ok) لا يُعلَن إلا بعد تحقق فعلي: صفر ملفات فاشلة + مخزون القسم
+ * في التخزين المحلي ≥ 95٪ من عدد الـmanifest. أي نقص ← 'failed' + failed[]
+ * ويُستأنف لاحقًا من حيث توقف (سجل cdn_done_files).
+ */
+export async function downloadSection(
+  section: SectionId,
+  onProgress?: ProgressCallback,
+  cancel?: CancelToken,
+): Promise<SectionDownloadResult> {
+  const manifest = await fetchManifest().catch(() => null);
+  if (!manifest || !manifest.files) {
+    return { ok: false, error: 'no-internet', stored: 0, expected: null };
+  }
+  const files = await collectSectionFiles(manifest, section);
+  if (files.length === 0) {
+    return { ok: false, error: 'no-internet', stored: 0, expected: null };
+  }
+
+  const { failed } = await runFileLoop(files, onProgress, cancel);
+  const stored = await countSectionStored(section);
+  const expected = files.reduce((s, f) => s + f.count, 0);
+
+  if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed, stored, expected };
+  if (failed.length > 0) return { ok: false, error: 'failed', failed, stored, expected };
+
+  // تحقق الاكتمال الفعلي من التخزين — لا نجاح شكليًا
+  if (expected > 0 && stored < Math.floor(expected * 0.95)) {
+    return { ok: false, error: 'failed', failed, stored, expected };
+  }
+
+  await primeIndexCaches(manifest);
+  await writeSyncState(SYNC_STATE_KEY, JSON.stringify(buildManifestToken(manifest)));
+  await setLocalContentVersion(manifest.version);
+  return { ok: true, stored, expected };
+}
+
+/**
+ * التحميل الكامل دفعة واحدة — باقٍ للتوافق فقط: بعد نموذج «زر لكل قسم»
+ * (أمر الدكتور 21 أكتوبر 2026) لا تستدعيه أي شاشة، والدخول لا ينتظره أبدًا.
+ * يحتفظ بضمانات الاستئناف/التحقق نفسها عبر runFileLoop المشتركة.
+ */
+export async function firstLaunchDownload(
+  onProgress?: ProgressCallback,
+  cancel?: CancelToken,
+): Promise<FirstLaunchResult> {
+  const manifest = await fetchManifest().catch(() => null);
+  if (!manifest || !manifest.files) return { ok: false, error: 'no-internet' };
+  const files = await collectContentFiles(manifest);
+  if (files.length === 0) return { ok: false, error: 'no-internet' };
+
+  const db = getDB();
+  const { failed, fileSubjects } = await runFileLoop(files, onProgress, cancel);
 
   if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed };
   if (failed.length > 0) return { ok: false, error: 'failed', failed };
@@ -484,6 +706,10 @@ export async function firstLaunchDownload(
  * - ملفات تغيّر hashها أو ظهرت ← تحميل + upsert
  * - ملفات اختفت ← حذف أسئلتها + tombstone محلي
  * تلتقط كل الأخطاء داخليًا — لا ترمي استثناءً أبدًا.
+ *
+ * ⚠️ لم تعد تُستدعى عند إقلاع التطبيق (أمر الدكتور 21 أكتوبر 2026):
+ * لا تنزيل/رفع محتوى تلقائيًا عند الدخول أبدًا — تحديث المحتوى يتم حصرًا
+ * من أزرار تحميل الأقسام (downloadSection) بمبادرة المستخدم.
  */
 export async function backgroundSync(): Promise<{ updated: number }> {
   try {
