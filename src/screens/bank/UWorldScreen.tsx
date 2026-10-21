@@ -22,6 +22,7 @@ import {
   fetchUWorldQuestions,
   fetchBankClassTopics,
   fetchBankClassQuestions,
+  invalidateBankClassCaches,
   subjectIcon,
   type QuizSubject,
   type QuizTopic,
@@ -191,7 +192,14 @@ export default function UWorldScreen() {
             </TouchableOpacity>
           </View>
           {/* تحميل القسم من زرّه هنا — لا تحميل عند دخول التطبيق (أمر الدكتور) */}
-          <SectionDownloadCard section="bank" onCompleted={() => setDlTick((t) => t + 1)} />
+          <SectionDownloadCard
+            section="bank"
+            onCompleted={() => {
+              // محتوى جديد قد يحمل تصنيفًا — إبطال كاش المواضيع حتى لا يبقى فراغ الجلسة
+              invalidateBankClassCaches();
+              setDlTick((t) => t + 1);
+            }}
+          />
           {subjectsLoading ? (
             <ListSkeleton />
           ) : subjects.length === 0 ? (

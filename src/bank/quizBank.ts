@@ -445,6 +445,19 @@ async function fetchBankClassTopicsFromCdn(subjectId: string): Promise<QuizTopic
 // TTL الـ60 ثانية القديم كان يعيد مسح شارد الـCDN الكامل عند كل فتح بعد دقيقة.
 const CLASS_MEM_TTL_MS = 24 * 60 * 60_000;
 
+/**
+ * إبطال كاش التصنيف — يُستدعى عند اكتمال تحميل قسم بنك الوطني:
+ * فرع «محلي بلا تصنيف» يخزّن [] للجلسة، فبلا إبطال تبقى المواضيع مخفية
+ * حتى إعادة تشغيل التطبيق إن نُشر التصنيف وحُمّل القسم بنفس الجلسة
+ * (ملاحظة المشرف الخبير على c8e5fb0).
+ */
+export function invalidateBankClassCaches(): void {
+  memClassTopics.clear();
+  memClassQuestions.clear();
+  inFlightClassTopics.clear();
+  inFlightClassQuestions.clear();
+}
+
 export async function fetchBankClassTopics(subjectId: string): Promise<QuizTopic[]> {
   const mem = memClassTopics.get(subjectId);
   if (mem && Date.now() - mem.at < CLASS_MEM_TTL_MS) return mem.data;
