@@ -53,6 +53,8 @@ export interface LocalQuestion {
   explanationSource: string;
   sessionLabel: string;
   topic: string;
+  /** موضوع التصنيف الطرفي (عرض «حسب المواضيع» لبنك الوطني) — '' عند غيابه */
+  classTopic: string;
 }
 
 export interface LocalTopic {
@@ -129,6 +131,7 @@ export function parseLocalQuestion(row: any): LocalQuestion {
     explanationSource: str(r.explanation_source),
     sessionLabel: str(r.session_label),
     topic: str(r.topic),
+    classTopic: str(r.class_topic),
   };
 }
 
@@ -213,7 +216,7 @@ export async function getSessionQuestions(
 ): Promise<LocalQuestion[]> {
   return select(
     `SELECT id, subject_id, session_id, code, q, options, correct_index, correct_indices,
-            explanation, explanation_source, session_label, topic
+            explanation, explanation_source, session_label, topic, class_topic
      FROM questions WHERE subject_id = ? AND session_id = ? ORDER BY rowid`,
     [subjectId, sessionId],
     parseLocalQuestion,
@@ -228,7 +231,7 @@ export async function getSubjectQuestions(
   const lim = Number.isInteger(limit) && limit > 0 ? ` LIMIT ${limit}` : '';
   return select(
     `SELECT id, subject_id, session_id, code, q, options, correct_index, correct_indices,
-            explanation, explanation_source, session_label, topic
+            explanation, explanation_source, session_label, topic, class_topic
      FROM questions WHERE subject_id = ? ORDER BY rowid${lim}`,
     [subjectId],
     parseLocalQuestion,
@@ -244,9 +247,35 @@ export async function getTopicQuestions(
   const lim = Number.isInteger(limit) && limit > 0 ? ` LIMIT ${limit}` : '';
   return select(
     `SELECT id, subject_id, session_id, code, q, options, correct_index, correct_indices,
-            explanation, explanation_source, session_label, topic
+            explanation, explanation_source, session_label, topic, class_topic
      FROM questions WHERE subject_id = ? AND topic = ? ORDER BY rowid${lim}`,
     [subjectId, topic],
+    parseLocalQuestion,
+  );
+}
+
+/** مواضيع التصنيف الطرفية لمادة (عرض «حسب المواضيع») مع الأعداد — الأكثر أولًا */
+export async function getSubjectClassTopics(subjectId: string): Promise<LocalTopic[]> {
+  return select(
+    `SELECT class_topic AS topic, COUNT(*) AS count FROM questions
+     WHERE subject_id = ? AND class_topic != '' GROUP BY class_topic ORDER BY count DESC`,
+    [subjectId],
+    (r: any) => ({ topic: str(r.topic), count: num(r.count) }),
+  );
+}
+
+/** أسئلة موضوع تصنيف طرفي محدد داخل مادة (عرض «حسب المواضيع») */
+export async function getClassTopicQuestions(
+  subjectId: string,
+  classTopic: string,
+  limit = 2000,
+): Promise<LocalQuestion[]> {
+  const lim = Number.isInteger(limit) && limit > 0 ? ` LIMIT ${limit}` : '';
+  return select(
+    `SELECT id, subject_id, session_id, code, q, options, correct_index, correct_indices,
+            explanation, explanation_source, session_label, topic, class_topic
+     FROM questions WHERE subject_id = ? AND class_topic = ? ORDER BY rowid${lim}`,
+    [subjectId, classTopic],
     parseLocalQuestion,
   );
 }

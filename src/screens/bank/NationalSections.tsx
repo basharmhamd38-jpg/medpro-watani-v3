@@ -15,7 +15,7 @@ import {
   getSubjectSessions,
   toBankSession,
 } from '../../db/bankRead';
-import { canOpenSession } from '../../payment/gates';
+import { canOpenBankSubject } from '../../payment/gates';
 import { isActivated } from '../../auth/auth';
 import LockView from './LockView';
 import {
@@ -165,7 +165,19 @@ export default function NationalSections({ navigation }: { navigation: any }) {
     );
   }
 
+  // قفل البنك الوحيد: المادة الأولى مجانية وباقي المواد بالتفعيل
+  const subjectAllowed = (s: Subject): boolean => {
+    const gate = canOpenBankSubject(subjects.map((x) => x.id), s.id);
+    if (gate.open) return true;
+    setLock({
+      title: s.name,
+      message: gate.reason || 'هذه المادة مقفلة — فعّل حسابك لفتح جميع المواد والدورات',
+    });
+    return false;
+  };
+
   const loadSessions = (s: Subject) => {
+    if (!subjectAllowed(s)) return;
     setActiveSubject(s);
     setSessions([]);
     setSessionsLoading(true);
@@ -180,25 +192,19 @@ export default function NationalSections({ navigation }: { navigation: any }) {
       });
   };
 
-  const openSession = (session: BankSession, sessionIndex: number) => {
+  // الجلسات داخل مادة مفتوحة بالكامل (القفل على المادة نفسها عند الدخول)
+  const openSession = (session: BankSession) => {
     if (!activeSubject) return;
-    const gate = canOpenSession(sessionIndex);
-    if (gate.open) {
-      navigation.navigate('BankQuestion', {
-        source: 'watani',
-        subjectId: activeSubject.id,
-        sessionId: session.id,
-        title: `${activeSubject.name} — ${session.name}`,
-      });
-    } else {
-      setLock({
-        title: `${activeSubject.name} — ${session.name}`,
-        message: 'هذه الدورة مقفلة — فعّل حسابك لفتح جميع الدورات والأسئلة',
-      });
-    }
+    navigation.navigate('BankQuestion', {
+      source: 'watani',
+      subjectId: activeSubject.id,
+      sessionId: session.id,
+      title: `${activeSubject.name} — ${session.name}`,
+    });
   };
 
   const openTopicMode = (s: Subject) => {
+    if (!subjectAllowed(s)) return;
     navigation.navigate('SubjectTopics', {
       subjectId: s.id,
       title: s.name,
@@ -208,31 +214,19 @@ export default function NationalSections({ navigation }: { navigation: any }) {
 
   // ─── عرض الجلسات (التنقيب) — FlatList افتراضية بلا ScrollView متداخلة ───
   if (activeSubject) {
-    const activated = isActivated();
-
-    const renderSession: ListRenderItem<(typeof sessionsBidi)[number]> = ({ item: sess, index: i }) => {
-      const gate = canOpenSession(i);
-      const locked = !gate.open;
-      const isFree = i < 2 && !activated;
-      return (
-        <TouchableOpacity
-          style={[styles.round, styles.sessionRow, locked && styles.roundLocked]}
-          activeOpacity={0.7}
-          onPress={() => openSession(sess, i)}>
-          <Text style={[styles.roundName, locked && styles.roundNameLocked, rtlTextStyle]} numberOfLines={1}>
-            {sess.nameBidi}
-          </Text>
-          <View style={styles.roundMeta}>
-            <Text style={styles.roundCount}>{arCount(sess.questionCount ?? 0)}</Text>
-            {locked ? (
-              <Lock size={14} color={colors.textMuted} />
-            ) : isFree ? (
-              <Badge kind="free" label="مجاني" />
-            ) : null}
-          </View>
-        </TouchableOpacity>
-      );
-    };
+    const renderSession: ListRenderItem<(typeof sessionsBidi)[number]> = ({ item: sess }) => (
+      <TouchableOpacity
+        style={[styles.round, styles.sessionRow]}
+        activeOpacity={0.7}
+        onPress={() => openSession(sess)}>
+        <Text style={[styles.roundName, rtlTextStyle]} numberOfLines={1}>
+          {sess.nameBidi}
+        </Text>
+        <View style={styles.roundMeta}>
+          <Text style={styles.roundCount}>{arCount(sess.questionCount ?? 0)}</Text>
+        </View>
+      </TouchableOpacity>
+    );
 
     const sessionsHeader = (
       <View style={styles.card}>
@@ -302,9 +296,9 @@ export default function NationalSections({ navigation }: { navigation: any }) {
           {subjects.length > 0 ? `${subjects.length} مادة في ${SECTION_NAMES.length} قسمًا` : 'دورات الوطني'}
         </Text>
         <View style={styles.noteRow}>
-          <Text style={styles.note}>آخر دورتين </Text>
+          <Text style={styles.note}>المادة الأولى </Text>
           <Badge kind="free" label="مجاني" />
-          <Text style={styles.note}> ومفتوحتان بالكامل — الدورات الأقدم ظاهرة للتصفح ومقفلة بالتفعيل</Text>
+          <Text style={styles.note}> ومفتوحة بالكامل للتجربة — وباقي المواد بالتفعيل</Text>
         </View>
       </View>
 
@@ -372,18 +366,28 @@ export default function NationalSections({ navigation }: { navigation: any }) {
 
                 {open && (
                   <View style={styles.accBody}>
-                    {sec.subjects.map((s) => (
-                      <TouchableOpacity
-                        key={s.id}
-                        style={styles.round}
-                        activeOpacity={0.7}
-                        onPress={() => (mode === 'topics' ? openTopicMode(s) : loadSessions(s))}>
-                        <Text style={[styles.roundName, rtlTextStyle]}>{bidi(s.name)}</Text>
-                        <View style={styles.roundMeta}>
-                          <Text style={styles.backGlyph}>‹</Text>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
+                    {sec.subjects.map((s) => {
+                      const gate = canOpenBankSubject(subjects.map((x) => x.id), s.id);
+                      const locked = !gate.open;
+                      const isFree = subjects[0]?.id === s.id && !isActivated();
+                      return (
+                        <TouchableOpacity
+                          key={s.id}
+                          style={styles.round}
+                          activeOpacity={0.7}
+                          onPress={() => (mode === 'topics' ? openTopicMode(s) : loadSessions(s))}>
+                          <Text style={[styles.roundName, rtlTextStyle]}>{bidi(s.name)}</Text>
+                          <View style={styles.roundMeta}>
+                            {locked ? (
+                              <Lock size={14} color={colors.textMuted} />
+                            ) : isFree ? (
+                              <Badge kind="free" label="مجاني" />
+                            ) : null}
+                            <Text style={styles.backGlyph}>‹</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                     {sec.subjects.length === 0 && (
                       <Text style={styles.emptyNote}>لا توجد مواد في هذا القسم بعد</Text>
                     )}

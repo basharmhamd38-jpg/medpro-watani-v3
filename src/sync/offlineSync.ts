@@ -200,7 +200,7 @@ async function upsertNormalizedFile(nf: NormalizedFile): Promise<void> {
     }
     for (const q of nf.questions) {
       await tx.execute(
-        'INSERT OR REPLACE INTO questions (id, subject_id, session_id, code, q, options, correct_index, correct_indices, explanation, explanation_source, session_label, topic) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT OR REPLACE INTO questions (id, subject_id, session_id, code, q, options, correct_index, correct_indices, explanation, explanation_source, session_label, topic, class_topic) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [
           q.id,
           q.subjectId,
@@ -214,6 +214,7 @@ async function upsertNormalizedFile(nf: NormalizedFile): Promise<void> {
           q.explanationSource,
           q.sessionLabel,
           q.topic,
+          q.classTopic,
         ],
       );
     }

@@ -4,16 +4,22 @@
 import { useEffect, useState, useMemo } from 'react';
 import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
-import { Inbox } from 'lucide-react-native';
+import { Calendar, Inbox, Layers, Lock } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
+import Badge from '../../components/Badge';
 import EmptyStateCard from '../../components/EmptyStateCard';
 import { SkeletonBlock } from '../../components/Skeleton';
 import QuizRunner, { arCount } from './QuizRunner';
+import LockView from './LockView';
+import { canOpenBankSubject } from '../../payment/gates';
+import { isActivated } from '../../auth/auth';
 import {
   fetchUWorldSubjects,
   fetchUWorldTopics,
   fetchUWorldQuestions,
+  fetchBankClassTopics,
+  fetchBankClassQuestions,
   subjectIcon,
   type QuizSubject,
   type QuizTopic,
@@ -21,6 +27,8 @@ import {
 } from '../../bank/quizBank';
 
 type Step = 'subjects' | 'topics' | 'quiz';
+// وضع تصفح بنك الوطني: حسب الجلسات (الافتراضي) أو حسب المواضيع — قرار الدكتور
+type BrowseMode = 'sessions' | 'topics';
 
 function ListSkeleton() {
   const { colors } = useTheme();
@@ -44,6 +52,8 @@ export default function UWorldScreen() {
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
   const [step, setStep] = useState<Step>('subjects');
+  const [mode, setMode] = useState<BrowseMode>('sessions');
+  const [lock, setLock] = useState<{ title: string; message: string } | null>(null);
   const [subjects, setSubjects] = useState<QuizSubject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(true);
   const [subject, setSubject] = useState<QuizSubject | null>(null);
@@ -71,11 +81,21 @@ export default function UWorldScreen() {
   }, []);
 
   const openSubject = (s: QuizSubject) => {
+    // قفل البنك الوحيد: المادة الأولى مجانية وباقي المواد بالتفعيل
+    const gate = canOpenBankSubject(subjects.map((x) => x.id), s.id);
+    if (!gate.open) {
+      setLock({
+        title: s.name,
+        message: gate.reason || 'هذه المادة مقفلة — فعّل حسابك لفتح جميع المواد',
+      });
+      return;
+    }
     setSubject(s);
     setTopics([]);
     setTopicsLoading(true);
     setStep('topics');
-    fetchUWorldTopics(s.id)
+    const load = mode === 'topics' ? fetchBankClassTopics : fetchUWorldTopics;
+    load(s.id)
       .then((list) => {
         setTopics(list);
         setTopicsLoading(false);
@@ -92,7 +112,8 @@ export default function UWorldScreen() {
     setQuestions([]);
     setQuestionsLoading(true);
     setStep('quiz');
-    fetchUWorldQuestions(subj.id, t.id)
+    const load = mode === 'topics' ? fetchBankClassQuestions : fetchUWorldQuestions;
+    load(subj.id, t.id)
       .then((list) => {
         setQuestions(list);
         setQuestionsLoading(false);
@@ -109,6 +130,17 @@ export default function UWorldScreen() {
     setStep('topics');
     setTopic(null);
   };
+
+  if (lock) {
+    return (
+      <LockView
+        title={lock.title}
+        message={lock.message}
+        backLabel="رجوع إلى المواد"
+        onBack={() => setLock(null)}
+      />
+    );
+  }
 
   if (step === 'quiz' && topic) {
     return (
@@ -130,17 +162,37 @@ export default function UWorldScreen() {
       showsVerticalScrollIndicator={false}>
       {step === 'subjects' && (
         <>
-          <Text style={[styles.heading, rtlTextStyle]}>{bidi('أسئلة UWorld')}</Text>
+          <Text style={[styles.heading, rtlTextStyle]}>{bidi('بنك الوطني')}</Text>
           <Text style={[styles.sub, rtlTextStyle]}>
-            {'اختر المادة ثم الموضوع لبدء الاختبار'}
+            {mode === 'topics'
+              ? 'اختر المادة ثم الموضوع لبدء الاختبار'
+              : 'اختر المادة ثم الجلسة لبدء الاختبار'}
           </Text>
+
+          {/* مدخل ثنائي: حسب الجلسات | حسب المواضيع — قرار الدكتور */}
+          <View style={[styles.modeCard, shadows.card]}>
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === 'sessions' && styles.modeBtnActive]}
+              activeOpacity={0.7}
+              onPress={() => setMode('sessions')}>
+              <Calendar size={15} color={mode === 'sessions' ? colors.white : colors.burgundy} strokeWidth={2.2} />
+              <Text style={[styles.modeText, mode === 'sessions' && styles.modeTextActive]}>حسب الجلسات</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modeBtn, mode === 'topics' && styles.modeBtnActive]}
+              activeOpacity={0.7}
+              onPress={() => setMode('topics')}>
+              <Layers size={15} color={mode === 'topics' ? colors.white : colors.burgundy} strokeWidth={2.2} />
+              <Text style={[styles.modeText, mode === 'topics' && styles.modeTextActive]}>حسب المواضيع</Text>
+            </TouchableOpacity>
+          </View>
           {subjectsLoading ? (
             <ListSkeleton />
           ) : subjects.length === 0 ? (
             <EmptyStateCard
               icon={Inbox}
               title="لا توجد مواد"
-              message="تعذّر تحميل مواد UWorld — تحقق من الاتصال وحاول مجددًا"
+              message="تعذّر تحميل مواد بنك الوطني — تحقق من الاتصال وحاول مجددًا"
               actionLabel="إعادة المحاولة"
               onAction={() => {
                 setSubjectsLoading(true);
@@ -154,28 +206,38 @@ export default function UWorldScreen() {
             />
           ) : (
             <View style={styles.list}>
-              {subjects.map((s) => (
-                <TouchableOpacity
-                  key={s.id}
-                  style={[styles.row, shadows.card]}
-                  activeOpacity={0.7}
-                  onPress={() => openSubject(s)}>
-                  <View style={styles.iconBox}>
-                    <Text style={styles.icon}>{subjectIcon(s.name)}</Text>
-                  </View>
-                  <View style={styles.rowBody}>
-                    <Text style={[styles.rowName, rtlTextStyle]}>{bidi(s.name)}</Text>
-                    <Text style={[styles.rowMeta, rtlTextStyle]}>
-                      {bidi(
-                        s.questionCount !== null
-                          ? arCount(s.questionCount)
-                          : 'أسئلة UWorld',
-                      )}
-                    </Text>
-                  </View>
-                  <Text style={styles.go}>‹</Text>
-                </TouchableOpacity>
-              ))}
+              {subjects.map((s, si) => {
+                const gate = canOpenBankSubject(subjects.map((x) => x.id), s.id);
+                const locked = !gate.open;
+                const isFree = si === 0 && !isActivated();
+                return (
+                  <TouchableOpacity
+                    key={s.id}
+                    style={[styles.row, shadows.card]}
+                    activeOpacity={0.7}
+                    onPress={() => openSubject(s)}>
+                    <View style={styles.iconBox}>
+                      <Text style={styles.icon}>{subjectIcon(s.name)}</Text>
+                    </View>
+                    <View style={styles.rowBody}>
+                      <Text style={[styles.rowName, rtlTextStyle]}>{bidi(s.name)}</Text>
+                      <Text style={[styles.rowMeta, rtlTextStyle]}>
+                        {bidi(
+                          s.questionCount !== null
+                            ? arCount(s.questionCount)
+                            : 'أسئلة بنك الوطني',
+                        )}
+                      </Text>
+                    </View>
+                    {locked ? (
+                      <Lock size={15} color={colors.textMuted} />
+                    ) : isFree ? (
+                      <Badge kind="free" label="مجاني" />
+                    ) : null}
+                    <Text style={styles.go}>‹</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           )}
         </>
@@ -187,14 +249,20 @@ export default function UWorldScreen() {
             <Text style={[styles.backLinkText, rtlTextStyle]}>{'› رجوع للمواد'}</Text>
           </TouchableOpacity>
           <Text style={[styles.heading, rtlTextStyle]}>{bidi(subject?.name ?? '')}</Text>
-          <Text style={[styles.sub, rtlTextStyle]}>{'اختر الموضوع'}</Text>
+          <Text style={[styles.sub, rtlTextStyle]}>
+            {mode === 'topics' ? 'اختر الموضوع' : 'اختر الجلسة'}
+          </Text>
           {topicsLoading ? (
             <ListSkeleton />
           ) : topics.length === 0 ? (
             <EmptyStateCard
               icon={Inbox}
-              title="لا توجد مواضيع"
-              message="تعذّر تحميل المواضيع — تحقق من الاتصال وحاول مجددًا"
+              title={mode === 'topics' ? 'لا توجد مواضيع' : 'لا توجد جلسات'}
+              message={
+                mode === 'topics'
+                  ? 'لا توجد مواضيع مصنفة لهذه المادة بعد'
+                  : 'تعذّر تحميل الجلسات — تحقق من الاتصال وحاول مجددًا'
+              }
             />
           ) : (
             <View style={styles.list}>
@@ -239,6 +307,34 @@ const getStyles = (colors: ThemeColors) => StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: 14,
   },
+  // مدخل التصفح الثنائي (نفس نمط NationalSections)
+  modeCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderBurgundy,
+    padding: 5,
+    gap: 6,
+    marginBottom: 14,
+  },
+  modeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: radius.sm,
+  },
+  modeBtnActive: { backgroundColor: colors.burgundy },
+  modeText: {
+    fontFamily: 'tajawal',
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: colors.burgundy,
+  },
+  modeTextActive: { color: colors.white },
   // رابط الرجوع عند بداية السطر (اليمين في RTL) مثل NationalSections — كان flex-end فيدفعه لليسار
   backLink: { marginBottom: 8, alignSelf: 'flex-start' },
   backLinkText: {

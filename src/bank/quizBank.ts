@@ -9,8 +9,11 @@ import {
   getSubjectTopics,
   getTopicQuestions,
   getSubjectQuestions,
+  getSubjectClassTopics,
+  getClassTopicQuestions,
   type LocalQuestion,
 } from '../db/bankRead';
+import { classTopicOf } from '../sync/normalize';
 
 // ذاكرة الجلسة — 60 ثانية
 const MEM_TTL_MS = 60_000;
@@ -385,6 +388,135 @@ export async function fetchUWorldQuestions(subjectId: string, topicId: string): 
     inFlightUWorldQuestions.delete(key);
   });
   inFlightUWorldQuestions.set(key, p);
+  return p;
+}
+
+// ─── بنك الوطني «حسب المواضيع» — مواضيع التصنيف الطرفية من سلاسل الأسئلة ───
+
+const memClassTopics = new Map<string, MemEntry<QuizTopic[]>>();
+const memClassQuestions = new Map<string, MemEntry<QuizQuestion[]>>();
+const inFlightClassTopics = new Map<string, Promise<QuizTopic[]>>();
+const inFlightClassQuestions = new Map<string, Promise<QuizQuestion[]>>();
+
+/** مواضيع التصنيف لمادة من SQLite المحلية */
+async function fetchBankClassTopicsFromLocal(subjectId: string): Promise<QuizTopic[] | null> {
+  try {
+    const topics = await getSubjectClassTopics(subjectId);
+    if (topics.length === 0) return null;
+    return topics.map((t, i) => ({
+      id: t.topic,
+      name: t.topic,
+      order: i,
+      questionCount: t.count,
+    }));
+  } catch {
+    return null;
+  }
+}
+
+/** شارد المادة من الـCDN عبر شجرة الفهرس (نفس مسار احتياطي UWorld) */
+async function getBankShardViaTree(subjectId: string): Promise<any | null> {
+  const tree = await getUWorldTree();
+  if (!tree) return null;
+  const subj = tree.find((s: any) => String(s.id) === subjectId || String(s.name) === subjectId);
+  return getUWorldShard(subjectId, subj?.__shardFile);
+}
+
+/** مواضيع التصنيف لمادة من الـCDN (احتياطي): تجميع الأوراق من أسئلة الشارد */
+async function fetchBankClassTopicsFromCdn(subjectId: string): Promise<QuizTopic[] | null> {
+  const shard = await getBankShardViaTree(subjectId).catch(() => null);
+  if (!shard) return null;
+  const counts = new Map<string, number>();
+  for (const sec of Array.isArray(shard.topics) ? shard.topics : []) {
+    for (const q of Array.isArray(sec?.questions) ? sec.questions : []) {
+      const leaf = classTopicOf(q);
+      if (!leaf) continue;
+      counts.set(leaf, (counts.get(leaf) ?? 0) + 1);
+    }
+  }
+  if (counts.size === 0) return null;
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([name, count], i) => ({ id: name, name, order: i, questionCount: count }));
+}
+
+export async function fetchBankClassTopics(subjectId: string): Promise<QuizTopic[]> {
+  const mem = memClassTopics.get(subjectId);
+  if (mem && Date.now() - mem.at < MEM_TTL_MS) return mem.data;
+  const inFlight = inFlightClassTopics.get(subjectId);
+  if (inFlight) return inFlight;
+  const p: Promise<QuizTopic[]> = (async () => {
+    const local = await fetchBankClassTopicsFromLocal(subjectId).catch(() => null);
+    if (local && local.length > 0) {
+      memClassTopics.set(subjectId, { at: Date.now(), data: local });
+      return local;
+    }
+    const cdn = await fetchBankClassTopicsFromCdn(subjectId).catch(() => null);
+    const out = cdn ?? [];
+    memClassTopics.set(subjectId, { at: Date.now(), data: out });
+    return out;
+  })().finally(() => {
+    inFlightClassTopics.delete(subjectId);
+  });
+  inFlightClassTopics.set(subjectId, p);
+  return p;
+}
+
+/** أسئلة موضوع تصنيف من SQLite المحلية */
+async function fetchBankClassQuestionsFromLocal(
+  subjectId: string,
+  classTopic: string,
+): Promise<QuizQuestion[] | null> {
+  try {
+    const qs = await getClassTopicQuestions(subjectId, classTopic);
+    if (qs.length === 0) return null;
+    return qs.map(localToQuiz).filter((q) => q.text.length > 0 && q.options.length > 0);
+  } catch {
+    return null;
+  }
+}
+
+/** أسئلة موضوع تصنيف من الـCDN (احتياطي) */
+async function fetchBankClassQuestionsFromCdn(
+  subjectId: string,
+  classTopic: string,
+): Promise<QuizQuestion[] | null> {
+  const shard = await getBankShardViaTree(subjectId).catch(() => null);
+  if (!shard) return null;
+  const out: QuizQuestion[] = [];
+  for (const sec of Array.isArray(shard.topics) ? shard.topics : []) {
+    for (const raw of Array.isArray(sec?.questions) ? sec.questions : []) {
+      if (classTopicOf(raw) !== classTopic) continue;
+      const q = cdnToQuestion(raw);
+      if (q) out.push(q);
+    }
+  }
+  return out.length > 0 ? out : null;
+}
+
+export async function fetchBankClassQuestions(
+  subjectId: string,
+  classTopic: string,
+): Promise<QuizQuestion[]> {
+  const key = `class__${subjectId}__${classTopic}`;
+  const mem = memClassQuestions.get(key);
+  if (mem && Date.now() - mem.at < MEM_TTL_MS) return mem.data;
+  const inFlight = inFlightClassQuestions.get(key);
+  if (inFlight) return inFlight;
+  const p: Promise<QuizQuestion[]> = (async () => {
+    const local = await fetchBankClassQuestionsFromLocal(subjectId, classTopic).catch(() => null);
+    if (local && local.length > 0) {
+      memClassQuestions.set(key, { at: Date.now(), data: local });
+      return local;
+    }
+    const cdn = await fetchBankClassQuestionsFromCdn(subjectId, classTopic).catch(() => null);
+    const out = cdn ?? [];
+    memClassQuestions.set(key, { at: Date.now(), data: out });
+    return out;
+  })().finally(() => {
+    inFlightClassQuestions.delete(key);
+  });
+  inFlightClassQuestions.set(key, p);
   return p;
 }
 

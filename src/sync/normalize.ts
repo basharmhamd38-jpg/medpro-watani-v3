@@ -42,6 +42,8 @@ export interface NormalizedQuestionRow {
   explanationSource: string;
   sessionLabel: string;
   topic: string;
+  /** موضوع التصنيف الطرفي من سلاسل q.topics (عرض «حسب المواضيع») — '' عند غيابه */
+  classTopic: string;
 }
 
 export interface NormalizedFile {
@@ -95,6 +97,24 @@ export function resolveCorrectIndex(raw: any, options: string[]): number {
   return idx;
 }
 
+/**
+ * الموضوع الطرفي لعرض «حسب المواضيع»: آخر مقطع من أول سلسلة تصنيف
+ * (مثل «القلبية > قصور القلب» ← «قصور القلب»). الأسئلة المعلَّمة متفرقة
+ * (topic_source ينتهي بـmisc أو نهاية السلسلة «متفرقة») تؤول إلى «متفرقة».
+ */
+export function classTopicOf(raw: any): string {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const src = str(r.topic_source ?? r.topicSource);
+  if (/(^|_)misc$/i.test(src.trim())) return 'متفرقة';
+  const chains: string[] = Array.isArray(r.topics)
+    ? r.topics.map((x: any) => str(x).trim()).filter(Boolean)
+    : [];
+  if (chains.length === 0) return '';
+  const leaf = (chains[0].split('>').pop() || '').trim();
+  if (!leaf) return '';
+  return leaf === 'متفرقة' ? 'متفرقة' : leaf;
+}
+
 function normalizeQuestion(
   q: any,
   index: number,
@@ -134,6 +154,7 @@ function normalizeQuestion(
     explanationSource: str(raw.explanationSource ?? raw.explanation_source),
     sessionLabel: str(raw.sessionLabel ?? raw.session_label ?? defaultSessionLabel),
     topic: str(topic),
+    classTopic: classTopicOf(raw),
   };
 }
 

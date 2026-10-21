@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS questions (
   explanation_source TEXT DEFAULT '',
   session_label TEXT DEFAULT '',
   topic TEXT DEFAULT '',
+  class_topic TEXT DEFAULT '',
   FOREIGN KEY(subject_id) REFERENCES subjects(id)
 );
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject_id);
@@ -165,5 +166,14 @@ export async function initDatabase(): Promise<void> {
   const statements = SCHEMA.split(';').map(s => s.trim()).filter(Boolean);
   for (const stmt of statements) {
     await database.execute(stmt);
+  }
+  // ترحيل: عمود تصنيف المواضيع لقواعد الأجهزة القديمة (يُبنى بـCREATE للحالات
+  // الجديدة فيُبتلع خطأ التكرار هنا بصمت)
+  try {
+    await database.execute(
+      "ALTER TABLE questions ADD COLUMN class_topic TEXT DEFAULT ''",
+    );
+  } catch {
+    /* العمود موجود أصلًا */
   }
 }

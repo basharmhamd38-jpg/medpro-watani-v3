@@ -2,17 +2,18 @@
 // مواد الجامعات: subjects (kind='university') — ids بصيغة uni_<univ>_<base>
 // المستوى الوسيط: sessions (مواضيع) — الأسئلة: questions
 // Firestore احتياطي فقط عند غياب البيانات محليًا — ليس مصدرًا أساسيًا.
-// بدون تفعيل: LockView الحالي. مع التفعيل: تنقيب كامل حتى شاشة BankQuestion.
+// نموذج التفعيل: تصفح الجامعات حر — المادة الأولى في البنك مجانية وباقي المواد بالتفعيل.
 import { useEffect, useState, useMemo } from 'react';
 import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
-import { Building2 } from 'lucide-react-native';
+import { Building2, Lock } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import Badge from '../../components/Badge';
 import { bidi, rtlTextStyle } from '../../utils/bidi';
 import EmptyStateCard from '../../components/EmptyStateCard';
 import { SkeletonBlock } from '../../components/Skeleton';
-import { canOpenUniversityQuestions } from '../../payment/gates';
+import { canOpenBankSubject } from '../../payment/gates';
+import { isActivated } from '../../auth/auth';
 import LockView from './LockView';
 import {
   FALLBACK_UNIVERSITIES,
@@ -24,6 +25,7 @@ import {
   getLocalUniversities,
   getUniversitySubjects,
   getSubjectSessions,
+  getBankSubjects,
   toBankSubject,
   toBankSession,
 } from '../../db/bankRead';
@@ -42,13 +44,27 @@ type BankView =
 export default function Universities({ navigation }: { navigation: any }) {
   const { colors } = useTheme();
   const styles = useMemo(() => getStyles(colors), [colors]);
-  const [lock, setLock] = useState<{ title: string } | null>(null);
+  const [lock, setLock] = useState<{ title: string; message?: string } | null>(null);
+  // ترتيب مواد البنك كاملًا (لحساب المادة الأولى المجانية)
+  const [bankSubjectIds, setBankSubjectIds] = useState<string[]>([]);
   // الأعداد تُقرأ ديناميكيًا من SQLite المحلية — والاحتياطي معروض فورًا بلا انتظار
   const [unis, setUnis] = useState<University[]>(FALLBACK_UNIVERSITIES);
 
   const [view, setView] = useState<BankView>({ kind: 'list' });
   const [items, setItems] = useState<(BankSubject | BankSession)[]>([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getBankSubjects('university')
+      .then((list) => {
+        if (alive) setBankSubjectIds(list.map((s) => s.id));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -78,7 +94,10 @@ export default function Universities({ navigation }: { navigation: any }) {
     return (
       <LockView
         title={lock.title}
-        message="تصفح البنية مجاني — فتح أسئلة دورات الجامعات يتطلب التفعيل"
+        message={
+          lock.message ||
+          'هذه المادة مقفلة — المادة الأولى في دورات الجامعات مجانية، وفتح باقي المواد يتطلب التفعيل'
+        }
         backLabel="رجوع إلى الجامعات"
         onBack={() => setLock(null)}
       />
@@ -104,12 +123,8 @@ export default function Universities({ navigation }: { navigation: any }) {
     return fetchUnivSessions(uniId, subjectId);
   };
 
+  // تصفح الجامعات والمواد حر للجميع — القفل عند فتح المادة المقفلة فقط
   const openUni = (u: University) => {
-    const gate = canOpenUniversityQuestions();
-    if (!gate.open) {
-      setLock({ title: u.name });
-      return;
-    }
     // لا مواد مرفوعة بعد لهذه الجامعة
     if (u.count == null) return;
     const next: BankView = { kind: 'subjects', uni: u };
@@ -123,6 +138,12 @@ export default function Universities({ navigation }: { navigation: any }) {
   };
 
   const openSubject = (v: { kind: 'subjects'; uni: University }, s: BankSubject) => {
+    // قفل البنك الوحيد: المادة الأولى مجانية وباقي المواد بالتفعيل
+    const gate = canOpenBankSubject(bankSubjectIds, s.id);
+    if (!gate.open) {
+      setLock({ title: s.name, message: gate.reason });
+      return;
+    }
     const next: BankView = { kind: 'sessions', uni: v.uni, subject: s };
     setView(next);
     setItems([]);
@@ -209,21 +230,33 @@ export default function Universities({ navigation }: { navigation: any }) {
               onAction={retry}
             />
           ) : (
-            items.map((it) => (
-              <TouchableOpacity
-                key={it.id}
-                style={styles.row}
-                activeOpacity={0.7}
-                onPress={() => pressItem(it)}>
-                <Text style={[styles.rowName, rtlTextStyle]}>{bidi(it.name)}</Text>
-                <View style={styles.rowMeta}>
-                  {it.questionCount != null && (
-                    <Text style={styles.rowCount}>{formatCount(it.questionCount)}</Text>
-                  )}
-                  <Text style={styles.go}>‹</Text>
-                </View>
-              </TouchableOpacity>
-            ))
+            items.map((it) => {
+              const isSubjectRow = view.kind === 'subjects';
+              const locked =
+                isSubjectRow && !canOpenBankSubject(bankSubjectIds, it.id).open;
+              const isFree =
+                isSubjectRow && bankSubjectIds[0] === it.id && !isActivated();
+              return (
+                <TouchableOpacity
+                  key={it.id}
+                  style={styles.row}
+                  activeOpacity={0.7}
+                  onPress={() => pressItem(it)}>
+                  <Text style={[styles.rowName, rtlTextStyle]}>{bidi(it.name)}</Text>
+                  <View style={styles.rowMeta}>
+                    {it.questionCount != null && (
+                      <Text style={styles.rowCount}>{formatCount(it.questionCount)}</Text>
+                    )}
+                    {locked ? (
+                      <Lock size={14} color={colors.textMuted} />
+                    ) : isFree ? (
+                      <Badge kind="free" label="مجاني" />
+                    ) : null}
+                    <Text style={styles.go}>‹</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
           )}
         </View>
       </ScrollView>
@@ -239,8 +272,8 @@ export default function Universities({ navigation }: { navigation: any }) {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>تصفح البنية — {unis.length} جامعات</Text>
         <Text style={styles.note}>
-          استعرض الجامعات والأقسام وأعداد الأسئلة —{' '}
-          <Text style={styles.noteBold}>فتح الأسئلة يتطلب التفعيل</Text>
+          استعرض الجامعات والمواد وأعداد الأسئلة —{' '}
+          <Text style={styles.noteBold}>المادة الأولى مجانية بالكامل وباقي المواد بالتفعيل</Text>
         </Text>
 
         {unis.map((u) => (
