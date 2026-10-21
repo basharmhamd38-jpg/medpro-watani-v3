@@ -8,9 +8,12 @@
 //   {subject_id, subject_name, sessions:[{id,name,year,term,questions:[...]}]}
 // - دورات الجامعات      dawrat_jami3at/<univ>/*.json → kind='university'
 //   نفس بنية الدورات (sessions أو topics)
+// - بنك UWorld الحقيقي  uworld/*.json         → kind='uworld'
+//   {subject_id, subject_name, topics:[{id,name,questions:[...]}]} — أسئلته بصيغة
+//   options[] مباشرة + correct حرف عربي ('ج') مع optionLabels عربية — تُحوَّل هنا.
 // - الحالات cases.json  → NormalizedCaseRow[] (عربية فقط — الألمانية cases_de.json لا تُدخَل أبدًا)
 
-export type SubjectKind = 'bank' | 'dawrat' | 'university';
+export type SubjectKind = 'bank' | 'dawrat' | 'university' | 'uworld';
 
 export interface NormalizedSubject {
   id: string;
@@ -60,9 +63,13 @@ function baseName(path: string): string {
   return (path.split('/').pop() || '').replace(/\.json$/i, '');
 }
 
+const AR_LETTERS = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح'];
+
 /**
  * حلّ الفهرس الصحيح من الحقول المختلفة:
  * - `correct` رقمًا (index) أو مصفوفة (أول عنصر) أو حرفًا ('A'→0) أو نص الخيار
+ * - حرفًا عربيًا ('ج') يُطابَق أولًا مع `optionLabels` الخام (مرجع صريح)،
+ *   وإلا بموضعه في الحروف العربية (أ=0، ب=1، ج=2...) — صيغة بنك UWorld الحقيقي
  * - وإلا `correctIndices[0]` — وإلا 0. يُقصَّر ضمن حدود الخيارات.
  */
 export function resolveCorrectIndex(raw: any, options: string[]): number {
@@ -76,12 +83,20 @@ export function resolveCorrectIndex(raw: any, options: string[]): number {
     if (Number.isFinite(n)) idx = Math.trunc(n);
   } else if (typeof c === 'string') {
     const t = c.trim();
-    if (/^[A-Za-z]$/.test(t)) {
+    const labels: string[] = Array.isArray(r.optionLabels)
+      ? r.optionLabels.map((x: any) => String(x).trim())
+      : [];
+    const li = labels.findIndex((l) => l === t);
+    if (li >= 0) {
+      idx = li;
+    } else if (/^[A-Za-z]$/.test(t)) {
       idx = t.toUpperCase().charCodeAt(0) - 65;
     } else {
       const n = parseInt(t, 10);
       if (!Number.isNaN(n)) {
         idx = n;
+      } else if (t.length === 1 && AR_LETTERS.includes(t)) {
+        idx = AR_LETTERS.indexOf(t);
       } else {
         const oi = options.findIndex((o) => o === t);
         if (oi >= 0) idx = oi;
@@ -242,6 +257,17 @@ export function normalizeFile(path: string, data: any): NormalizedFile | null {
       };
     }
 
+    if (path.startsWith('uworld/')) {
+      const sid = str(data.subject_id) || base;
+      const subjectId = `uworld_${sid}`;
+      const sections = buildSections(subjectId, data);
+      return {
+        subject: { id: subjectId, nameAr: str(data.subject_name) || sid, kind: 'uworld' },
+        sections,
+        questions: collectQuestions(subjectId, sections, data, ''),
+      };
+    }
+
     if (path.startsWith('dawrat_jami3at/')) {
       const univ = path.split('/')[1] || 'univ';
       const subjectId = `uni_${univ}_${base}`;
@@ -283,7 +309,8 @@ export function isContentPath(path: string): boolean {
   return (
     path.startsWith('questions/') ||
     path.startsWith('dawrat/') ||
-    path.startsWith('dawrat_jami3at/')
+    path.startsWith('dawrat_jami3at/') ||
+    path.startsWith('uworld/')
   );
 }
 

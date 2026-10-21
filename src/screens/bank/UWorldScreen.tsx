@@ -1,6 +1,7 @@
-// أسئلة UWorld — مرجعية AI Studio (UWorldSection.tsx)
-// التدفق: مواد ← مواضيع ← أسئلة ← نتيجة — كل البيانات من Firestore
-// sources/uworld_bank/subjects → topics → questions
+// بنك الوطني — أسئلة الامتحان الوطني من الجلسات المصنّفة (questions/ shards)
+// التدفق: مواد ← جلسات أو مواضيع التصنيف ← أسئلة ← نتيجة
+// البيانات: SQLite أولًا ← Cloudflare احتياطيًا (التبويب كان يُسمّى «أسئلة UWorld»
+// قبل 21 أكتوبر 2026 — أُعيدت تسميته باسمه الحقيقي وبنك UWorld صار تبويبًا مستقلًا)
 import { useEffect, useState, useMemo } from 'react';
 import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText as Text } from '../../components/AppText';

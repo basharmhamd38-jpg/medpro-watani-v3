@@ -1,9 +1,10 @@
-// طبقة بيانات UWorld / الحالات السريرية / النماذج التدريبية
+// طبقة بيانات البنوك / الحالات السريرية / النماذج التدريبية
 // القاعدة: SQLite المحلية أولًا (أوفلاين دائمًا) ← Cloudflare CDN احتياطي
 // Firestore مهجورة نهائيًا — لا تُقرأ أبدًا.
-// UWorld = بنك الوطني (questions/ shards) — يُحمَّل محليًا عند أول تشغيل.
+// fetchUWorld* = بنك الوطني (questions/ shards)؛ fetchRealUWorld* = بنك UWorld
+// الحقيقي (uworld/ shards) — تبويبان مستقلان منذ 21 أكتوبر 2026.
 
-import { getContent, getQuestionsIndex, getQuestionShard } from '../content/cloudflare';
+import { getContent, getQuestionsIndex, getQuestionShard, getUWorldBankIndex } from '../content/cloudflare';
 import {
   getBankSubjects,
   getSubjectTopics,
@@ -440,9 +441,13 @@ async function fetchBankClassTopicsFromCdn(subjectId: string): Promise<QuizTopic
     .map(([name, count], i) => ({ id: name, name, order: i, questionCount: count }));
 }
 
+// كاش مواضيع/أسئلة التصنيف يعيش عمر الجلسة (إصلاح تجميد وضع المواضيع):
+// TTL الـ60 ثانية القديم كان يعيد مسح شارد الـCDN الكامل عند كل فتح بعد دقيقة.
+const CLASS_MEM_TTL_MS = 24 * 60 * 60_000;
+
 export async function fetchBankClassTopics(subjectId: string): Promise<QuizTopic[]> {
   const mem = memClassTopics.get(subjectId);
-  if (mem && Date.now() - mem.at < MEM_TTL_MS) return mem.data;
+  if (mem && Date.now() - mem.at < CLASS_MEM_TTL_MS) return mem.data;
   const inFlight = inFlightClassTopics.get(subjectId);
   if (inFlight) return inFlight;
   const p: Promise<QuizTopic[]> = (async () => {
@@ -451,9 +456,18 @@ export async function fetchBankClassTopics(subjectId: string): Promise<QuizTopic
       memClassTopics.set(subjectId, { at: Date.now(), data: local });
       return local;
     }
+    // المادة محمّلة محليًا لكن بلا مواضيع تصنيف (class_topic فارغ بنيويًا):
+    // مسح شارد الـCDN سيعيد الفراغ نفسه (نفس دالة التصنيف عند الإدخال) —
+    // نعيد [] بلا مسح ونخزّنها للجلسة حتى لا يتكرر الفحص عند كل فتح.
+    const hasLocal = await getSubjectQuestions(subjectId, 1).catch(() => []);
+    if (hasLocal.length > 0) {
+      memClassTopics.set(subjectId, { at: Date.now(), data: [] });
+      return [];
+    }
     const cdn = await fetchBankClassTopicsFromCdn(subjectId).catch(() => null);
     const out = cdn ?? [];
-    memClassTopics.set(subjectId, { at: Date.now(), data: out });
+    // الفراغ العابر (لا محلي ولا CDN) لا يُخزَّن — قد يمتلئ بعد تحميل القسم
+    if (out.length > 0) memClassTopics.set(subjectId, { at: Date.now(), data: out });
     return out;
   })().finally(() => {
     inFlightClassTopics.delete(subjectId);
@@ -500,7 +514,7 @@ export async function fetchBankClassQuestions(
 ): Promise<QuizQuestion[]> {
   const key = `class__${subjectId}__${classTopic}`;
   const mem = memClassQuestions.get(key);
-  if (mem && Date.now() - mem.at < MEM_TTL_MS) return mem.data;
+  if (mem && Date.now() - mem.at < CLASS_MEM_TTL_MS) return mem.data;
   const inFlight = inFlightClassQuestions.get(key);
   if (inFlight) return inFlight;
   const p: Promise<QuizQuestion[]> = (async () => {
@@ -509,9 +523,16 @@ export async function fetchBankClassQuestions(
       memClassQuestions.set(key, { at: Date.now(), data: local });
       return local;
     }
+    // نفس منطق المواضيع: مادة محمّلة محليًا بلا أسئلة لهذا التصنيف = فراغ بنيوي،
+    // مسح الشارد الكامل من الـCDN يعيد النتيجة نفسها — لا نمسح.
+    const hasLocal = await getSubjectQuestions(subjectId, 1).catch(() => []);
+    if (hasLocal.length > 0) {
+      memClassQuestions.set(key, { at: Date.now(), data: [] });
+      return [];
+    }
     const cdn = await fetchBankClassQuestionsFromCdn(subjectId, classTopic).catch(() => null);
     const out = cdn ?? [];
-    memClassQuestions.set(key, { at: Date.now(), data: out });
+    if (out.length > 0) memClassQuestions.set(key, { at: Date.now(), data: out });
     return out;
   })().finally(() => {
     inFlightClassQuestions.delete(key);
@@ -525,6 +546,155 @@ export async function fetchUWorldSubjectPool(subjectId: string): Promise<QuizQue
   const topics = await fetchUWorldTopics(subjectId);
   const lists = await Promise.all(
     topics.map((t) => fetchUWorldQuestions(subjectId, t.id).catch(() => [] as QuizQuestion[])),
+  );
+  const seen = new Set<string>();
+  const out: QuizQuestion[] = [];
+  for (const q of lists.flat()) {
+    const id = String(q?.id ?? '');
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(q);
+  }
+  return out;
+}
+
+// ─── بنك UWorld الحقيقي (uworld/ shards) — تبويب مستقل عن بنك الوطني ───
+// نفس نمط طبقة الوطني: SQLite أولًا ← CDN احتياطي، بمعرّفات محلية uworld_<sid>
+// تُبنى أيضًا بمسار الـCDN حتى تتطابق الصيغ بين المصدرين.
+
+let memRealUWorldSubjects: MemEntry<QuizSubject[]> | null = null;
+const memRealUWorldTopics = new Map<string, MemEntry<QuizTopic[]>>();
+const memRealUWorldQuestions = new Map<string, MemEntry<QuizQuestion[]>>();
+const inFlightRealTopics = new Map<string, Promise<QuizTopic[]>>();
+const inFlightRealQuestions = new Map<string, Promise<QuizQuestion[]>>();
+let inFlightRealSubjects: Promise<QuizSubject[]> | null = null;
+
+const realSidOf = (subjectId: string) => subjectId.replace(/^uworld_/, '');
+
+async function getRealUWorldShard(subjectId: string): Promise<any | null> {
+  try {
+    const index = await getUWorldBankIndex();
+    const sh = index?.shards.find(
+      (s) => s.subject_id === realSidOf(subjectId) || s.subject_name === subjectId,
+    );
+    if (sh) return await getQuestionShard(sh.file);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchRealUWorldSubjects(): Promise<QuizSubject[]> {
+  if (memRealUWorldSubjects && Date.now() - memRealUWorldSubjects.at < MEM_TTL_MS) {
+    return memRealUWorldSubjects.data;
+  }
+  if (inFlightRealSubjects) return inFlightRealSubjects;
+  const p: Promise<QuizSubject[]> = (async () => {
+    try {
+      const subs = await getBankSubjects('uworld');
+      if (subs.length > 0) {
+        const out = subs.map((s, i) => ({
+          id: s.id,
+          name: s.name,
+          order: i,
+          questionCount: s.questionCount,
+          topicCount: null,
+        }));
+        memRealUWorldSubjects = { at: Date.now(), data: out };
+        return out;
+      }
+    } catch {
+      /* سقوط للـCDN */
+    }
+    try {
+      const index = await getUWorldBankIndex();
+      if (index && index.shards.length > 0) {
+        const out = index.shards.map((s, i) => ({
+          id: `uworld_${s.subject_id}`,
+          name: s.subject_name,
+          order: i,
+          questionCount: s.count,
+          topicCount: null,
+        }));
+        memRealUWorldSubjects = { at: Date.now(), data: out };
+        return out;
+      }
+    } catch {
+      /* تجاهل */
+    }
+    return [];
+  })().finally(() => {
+    inFlightRealSubjects = null;
+  });
+  inFlightRealSubjects = p;
+  return p;
+}
+
+export async function fetchRealUWorldTopics(subjectId: string): Promise<QuizTopic[]> {
+  const mem = memRealUWorldTopics.get(subjectId);
+  if (mem && Date.now() - mem.at < MEM_TTL_MS) return mem.data;
+  const inFlight = inFlightRealTopics.get(subjectId);
+  if (inFlight) return inFlight;
+  const p: Promise<QuizTopic[]> = (async () => {
+    const local = await fetchUWorldTopicsFromLocal(subjectId).catch(() => null);
+    if (local && local.length > 0) {
+      memRealUWorldTopics.set(subjectId, { at: Date.now(), data: local });
+      return local;
+    }
+    const shard = await getRealUWorldShard(subjectId);
+    const topics = Array.isArray(shard?.topics) ? shard.topics : [];
+    const out = topics.map((t: any, i: number) => ({
+      id: String(t.id || t.name || ''),
+      name: String(t.name || ''),
+      order: i,
+      questionCount: Array.isArray(t.questions) ? t.questions.length : null,
+    }));
+    if (out.length > 0) memRealUWorldTopics.set(subjectId, { at: Date.now(), data: out });
+    return out;
+  })().finally(() => {
+    inFlightRealTopics.delete(subjectId);
+  });
+  inFlightRealTopics.set(subjectId, p);
+  return p;
+}
+
+export async function fetchRealUWorldQuestions(
+  subjectId: string,
+  topicId: string,
+): Promise<QuizQuestion[]> {
+  const key = `${subjectId}__${topicId}`;
+  const mem = memRealUWorldQuestions.get(key);
+  if (mem && Date.now() - mem.at < MEM_TTL_MS) return mem.data;
+  const inFlight = inFlightRealQuestions.get(key);
+  if (inFlight) return inFlight;
+  const p: Promise<QuizQuestion[]> = (async () => {
+    const local = await fetchUWorldQuestionsFromLocal(subjectId, topicId).catch(() => null);
+    if (local && local.length > 0) {
+      memRealUWorldQuestions.set(key, { at: Date.now(), data: local });
+      return local;
+    }
+    const shard = await getRealUWorldShard(subjectId);
+    const topic = Array.isArray(shard?.topics)
+      ? shard.topics.find((t: any) => String(t.id) === topicId || String(t.name) === topicId)
+      : null;
+    const rawQuestions = Array.isArray(topic?.questions) ? topic.questions : [];
+    const out = rawQuestions
+      .map(cdnToQuestion)
+      .filter((q: QuizQuestion | null): q is QuizQuestion => q !== null);
+    if (out.length > 0) memRealUWorldQuestions.set(key, { at: Date.now(), data: out });
+    return out;
+  })().finally(() => {
+    inFlightRealQuestions.delete(key);
+  });
+  inFlightRealQuestions.set(key, p);
+  return p;
+}
+
+/** كل أسئلة مادة UWorld الحقيقي دفعة واحدة (للمذاكرة الحرة) */
+export async function fetchRealUWorldSubjectPool(subjectId: string): Promise<QuizQuestion[]> {
+  const topics = await fetchRealUWorldTopics(subjectId);
+  const lists = await Promise.all(
+    topics.map((t) => fetchRealUWorldQuestions(subjectId, t.id).catch(() => [] as QuizQuestion[])),
   );
   const seen = new Set<string>();
   const out: QuizQuestion[] = [];

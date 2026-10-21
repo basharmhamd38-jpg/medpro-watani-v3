@@ -4,23 +4,25 @@
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { useState, useMemo } from 'react';
-import { Award, BookOpen, Building2, Globe, Stethoscope } from 'lucide-react-native';
+import { Award, BookOpen, Building2, Globe, Landmark, Stethoscope } from 'lucide-react-native';
 import { radius, shadows, useTheme, type ThemeColors } from '../../theme';
 import NationalSections from './NationalSections';
 import Universities from './Universities';
 import UWorldScreen from './UWorldScreen';
+import UWorldRealScreen from './UWorldRealScreen';
 import ClinicalCasesScreen from './ClinicalCasesScreen';
 import PracticeModelsScreen from './PracticeModelsScreen';
 
 const TABS = [
   { label: 'دورات الوطني', icon: BookOpen },
   { label: 'دورات الجامعات', icon: Building2 },
+  { label: 'بنك الوطني', icon: Landmark },
   { label: 'أسئلة UWorld', icon: Globe },
   { label: 'حالات سريرية', icon: Stethoscope },
   { label: 'نماذج تدريبية', icon: Award },
 ];
 
-// صفّان: 3 + 2 — النص كامل بلا قص (قرار الدكتور)
+// صفّان: 3 + 3 — النص كامل بلا قص (قرار الدكتور)
 const ROWS = [TABS.slice(0, 3), TABS.slice(3)];
 
 function TabButton({
@@ -81,8 +83,9 @@ export default function BankScreen({ navigation }: { navigation: any }) {
         {tab === 0 && <NationalSections navigation={navigation} />}
         {tab === 1 && <Universities navigation={navigation} />}
         {tab === 2 && <UWorldScreen />}
-        {tab === 3 && <ClinicalCasesScreen />}
-        {tab === 4 && <PracticeModelsScreen />}
+        {tab === 3 && <UWorldRealScreen />}
+        {tab === 4 && <ClinicalCasesScreen />}
+        {tab === 5 && <PracticeModelsScreen />}
       </View>
     </View>
   );

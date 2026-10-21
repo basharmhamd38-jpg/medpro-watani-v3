@@ -4,7 +4,7 @@
 // عند غياب البيانات محليًا (جدول فارغ)، وليس مصدرًا أساسيًا.
 //
 // صيغ الـids (المصدر الوحيد: src/sync/normalize.ts):
-//   المواد:   bank_<sid> | dawrat_<sid> | uni_<univ>_<base>
+//   المواد:   bank_<sid> | dawrat_<sid> | uni_<univ>_<base> | uworld_<sid>
 //   الأقسام:  <subjectId>__<sid>
 //   الأسئلة:  <subjectId>__<q.id|q.code>  أو  <sessionId>#<index>
 //
@@ -140,7 +140,9 @@ function toLocalSubject(row: any): LocalSubject {
   return {
     id: str(r.id),
     name: str(r.name_ar),
-    kind: (r.kind === 'dawrat' || r.kind === 'university' ? r.kind : 'bank') as SubjectKind,
+    kind: (r.kind === 'dawrat' || r.kind === 'university' || r.kind === 'uworld'
+      ? r.kind
+      : 'bank') as SubjectKind,
     section: str(r.section),
     questionCount: num(r.question_count),
     downloaded: num(r.downloaded) === 1,
@@ -294,7 +296,7 @@ export async function getSubjectTopics(subjectId: string): Promise<LocalTopic[]>
 export async function getQuestionCounts(): Promise<QuestionCounts> {
   const empty: QuestionCounts = {
     total: 0,
-    byKind: { bank: 0, dawrat: 0, university: 0 },
+    byKind: { bank: 0, dawrat: 0, university: 0, uworld: 0 },
   };
   try {
     const db = getDB();
@@ -308,7 +310,7 @@ export async function getQuestionCounts(): Promise<QuestionCounts> {
     const byKind = { ...empty.byKind };
     for (const row of g.rows || []) {
       const k = str((row as any).kind);
-      if (k === 'bank' || k === 'dawrat' || k === 'university') {
+      if (k === 'bank' || k === 'dawrat' || k === 'university' || k === 'uworld') {
         byKind[k] = num((row as any).c);
       }
     }

@@ -30,8 +30,10 @@ let memManifest: MemEntry<CdnManifest | null> | null = null;
 
 // مفاتيح الكاش المشفّر للفهارس (كانت تُجلب من الشبكة فقط — سبب "المحمّل يطلب إنترنت")
 const QUESTIONS_INDEX_CACHE_KEY = 'cdn_questions_index';
+const UWORLD_INDEX_CACHE_KEY = 'cdn_uworld_index';
 const DAWRAT_SUBJECTS_CACHE_KEY = 'cdn_dawrat_subjects';
 let memQIndex: MemEntry<QuestionShardIndex | null> | null = null;
+let memUWorldIndex: MemEntry<QuestionShardIndex | null> | null = null;
 let memDawratSubs: MemEntry<DawratSubjectMeta[]> | null = null;
 
 const FILE_NAMES: Record<ContentType, string> = {
@@ -267,6 +269,41 @@ export async function getQuestionsIndex(): Promise<QuestionShardIndex | null> {
   return null;
 }
 
+/**
+ * فهرس بنك UWorld الحقيقي (uworld.json) — نفس بنية فهرس الأسئلة
+ * ({count, sharded, shards:[{file, subject_id, subject_name, count, size}]}).
+ * الأولوية: ذاكرة الجلسة ← الشبكة (يُخزَّن مشفّرًا) ← الكاش المشفّر.
+ */
+export async function getUWorldBankIndex(): Promise<QuestionShardIndex | null> {
+  if (memUWorldIndex && Date.now() - memUWorldIndex.at < MEM_TTL_MS) {
+    return memUWorldIndex.data;
+  }
+  try {
+    const data = await downloadFile('uworld.json', undefined, 15000);
+    if (data && Array.isArray(data.shards)) {
+      const idx = data as QuestionShardIndex;
+      memUWorldIndex = { at: Date.now(), data: idx };
+      await secureSet(UWORLD_INDEX_CACHE_KEY, idx).catch(() => {});
+      return idx;
+    }
+  } catch {
+    /* سقوط للكاش المشفّر */
+  }
+  try {
+    if (await isCacheFresh()) {
+      const cached = await secureGet<QuestionShardIndex>(UWORLD_INDEX_CACHE_KEY);
+      if (cached && Array.isArray(cached.shards)) {
+        memUWorldIndex = { at: Date.now(), data: cached };
+        return cached;
+      }
+    }
+  } catch {
+    /* تجاهل */
+  }
+  memUWorldIndex = { at: Date.now(), data: null };
+  return null;
+}
+
 function shardCacheKey(file: string): string {
   return 'cdn_shard_' + file.replace(/[^a-zA-Z0-9_-]/g, '_');
 }
@@ -280,7 +317,7 @@ function shardCacheKey(file: string): string {
 export async function primeDownloadedFile(path: string, data: any): Promise<void> {
   try {
     if (!data || typeof data !== 'object') return;
-    if (path.startsWith('questions/')) {
+    if (path.startsWith('questions/') || path.startsWith('uworld/')) {
       await secureSet(shardCacheKey(path), data).catch(() => {});
     } else if (path.startsWith('dawrat_jami3at/')) {
       await secureSet('cdn_univ_' + path.replace(/[^a-zA-Z0-9_-]/g, '_'), data).catch(() => {});

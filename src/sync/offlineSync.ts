@@ -2,7 +2,7 @@
 // - لا بوابة تحميل عند الدخول إطلاقًا: التطبيق يفتح مباشرة دائمًا.
 // - المحتوى يصل فقط من زر تحميل داخل كل قسم (downloadSection) — بنطاق القسم:
 //   بنك الوطني questions/ | دورات الوطني dawrat/ | الجامعات dawrat_jami3at/
-//   الحالات cases.json | النماذج practice_models/
+//   الحالات cases.json | النماذج practice_models/ | بنك UWorld الحقيقي uworld/
 // - اكتمال أي قسم يُتحقق منه فعليًا من التخزين المحلي (SQLite/الكاش المشفّر):
 //   عدد محفوظ ≥ 95٪ من عدد الـmanifest — لا حالة نجاح شكلية أبدًا.
 // - firstLaunchDownload باقية للتوافق فقط (لا منادي لها من الواجهة بعد الآن)،
@@ -17,6 +17,7 @@ import {
   discoverFiles,
   downloadFile,
   getQuestionsIndex,
+  getUWorldBankIndex,
   getDawratSubjects,
   getUnivSubjects,
   primeDownloadedFile,
@@ -57,6 +58,7 @@ const READY_KEY = 'offline_ready_v2'; // user_progress: اكتمال التحم�
 const SYNC_STATE_KEY = 'cdn_manifest'; // sync_state: {version, files:{path:hash}}
 const FILE_SUBJECTS_KEY = 'cdn_file_subjects'; // sync_state: {path: subjectId} للحذف لاحقًا
 const DONE_FILES_KEY = 'cdn_done_files'; // sync_state: {path: hash} — سجل الاستئناف لكل ملف
+const SECTION_EXPECTED_KEY = 'cdn_section_expected'; // sync_state: {section: count} — آخر متوقَّع موثّق لكل قسم (للحكم على الاكتمال أوفلاين بلا ادعاء وهمي)
 /** علامة fileSubjects لملف cases.json (بلا subjectId — جدول مستقل) */
 const CASES_SUBJECT_MARKER = '__virtual_cases__';
 
@@ -117,6 +119,28 @@ async function collectBankFiles(manifest: CdnManifest): Promise<ContentFile[]> {
       if (
         typeof p === 'string' &&
         p.startsWith('questions/') &&
+        manifest.files[p] &&
+        (manifest.files[p].count ?? 0) > 0
+      ) {
+        out.push(toContentFile(manifest, p, sh.subject_name || labelForPath(p)));
+      }
+    }
+  } catch {
+    /* تجاهل — قسم بلا ملفات */
+  }
+  return out;
+}
+
+/** شاردات بنك UWorld الحقيقي (uworld/*.json) من فهرس uworld.json — نفس نمط بنك الوطني */
+async function collectUWorldFiles(manifest: CdnManifest): Promise<ContentFile[]> {
+  const out: ContentFile[] = [];
+  try {
+    const idx = await getUWorldBankIndex();
+    for (const sh of idx?.shards ?? []) {
+      const p = sh?.file;
+      if (
+        typeof p === 'string' &&
+        p.startsWith('uworld/') &&
         manifest.files[p] &&
         (manifest.files[p].count ?? 0) > 0
       ) {
@@ -204,7 +228,7 @@ async function collectContentFiles(manifest: CdnManifest): Promise<ContentFile[]
 // ─── أقسام المحتوى (نطاقات التحميل المستقلة) ───
 
 /** قسم محتوى = تبويب في بنك الأسئلة له زر تحميله الخاص */
-export type SectionId = 'bank' | 'dawrat' | 'university' | 'cases' | 'practice';
+export type SectionId = 'bank' | 'dawrat' | 'university' | 'cases' | 'practice' | 'uworld';
 
 /** نطاق القسم من بادئة المسار — dawrat_jami3at تسبق dawrat (الأطول أولًا) */
 export function sectionOfPath(path: string): SectionId | null {
@@ -213,6 +237,7 @@ export function sectionOfPath(path: string): SectionId | null {
   if (path.startsWith('dawrat/')) return 'dawrat';
   if (path === 'cases.json') return 'cases';
   if (path.startsWith('practice_models/')) return 'practice';
+  if (path.startsWith('uworld/')) return 'uworld';
   return null;
 }
 
@@ -232,6 +257,8 @@ async function collectSectionFiles(
       return collectCasesFiles(manifest);
     case 'practice':
       return collectPracticeFiles();
+    case 'uworld':
+      return collectUWorldFiles(manifest);
   }
 }
 
@@ -417,6 +444,7 @@ async function readDoneFiles(): Promise<Record<string, string>> {
 async function primeIndexCaches(manifest: CdnManifest): Promise<void> {
   try {
     await getQuestionsIndex().catch(() => null);
+    await getUWorldBankIndex().catch(() => null);
     await getDawratSubjects().catch(() => []);
     const univs = new Set<string>();
     for (const p of Object.keys(manifest.files)) {
@@ -499,10 +527,37 @@ export interface SectionStatus {
   state: SectionState;
 }
 
+/** آخر متوقَّع موثّق لكل قسم (يُحفظ عند كل فحص/تحميل بمانيفست حاضر) */
+async function readSectionExpected(): Promise<Record<string, number>> {
+  try {
+    const raw = await readSyncState(SECTION_EXPECTED_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+async function persistSectionExpected(section: SectionId, expected: number): Promise<void> {
+  if (!(expected > 0)) return;
+  try {
+    const all = await readSectionExpected();
+    if (all[section] !== expected) {
+      all[section] = expected;
+      await writeSyncState(SECTION_EXPECTED_KEY, JSON.stringify(all));
+    }
+  } catch {
+    /* غير قاتل — الحكم يبقى متحفظًا بلا متوقَّع */
+  }
+}
+
 /**
  * حالة قسم حقيقية: مخزون الجهاز من التخزين نفسه + المتوقع من الـmanifest.
- * الاكتمال (complete) يتطلب مخزونًا ≥ 95٪ من المتوقع — تمامًا كتحقق التحميل.
- * عند غياب الـmanifest (أوفلاين) يُحكم بالمخزون وحده: موجود ← complete، صفر ← empty.
+ * الاكتمال (complete) يتطلب مخزونًا ≥ 95٪ من متوقَّع معروف — تمامًا كتحقق التحميل.
+ * عند غياب الـmanifest (أوفلاين) يُقارَن بآخر متوقَّع موثّق محفوظ محليًا؛
+ * وبلا أي متوقَّع معروف لا يُعلَن اكتمال أبدًا (stored>0 ← 'partial' متحفظًا) —
+ * إصلاح المشرف الخبير 21 أكتوبر: الحكم بالمخزون وحده كان إنجازًا وهميًا
+ * (تحميل جزئي 10٪ يظهر «مكتمل — يعمل أوفلاين» متى فُتح القسم بلا اتصال).
  */
 export async function getSectionStatus(section: SectionId): Promise<SectionStatus> {
   const stored = await countSectionStored(section);
@@ -514,13 +569,22 @@ export async function getSectionStatus(section: SectionId): Promise<SectionStatu
     expected = files.reduce((s, f) => s + f.count, 0);
     const doneMap = await readDoneFiles();
     outdated = files.filter((f) => f.hash && doneMap[f.path] !== f.hash).length;
+    await persistSectionExpected(section, expected);
+  }
+  if (expected === null) {
+    const persisted = await readSectionExpected();
+    if (typeof persisted[section] === 'number' && persisted[section] > 0) {
+      expected = persisted[section];
+    }
   }
   let state: SectionState;
   if (stored === 0) {
     state = 'empty';
-  } else if (expected !== null && expected > 0 && stored < Math.floor(expected * 0.95)) {
+  } else if (expected === null || expected === 0) {
+    state = 'partial'; // مخزون موجود والاكتمال غير متحقَّق منه — لا ادعاء اكتمال
+  } else if (stored < Math.floor(expected * 0.95)) {
     state = 'partial';
-  } else if (expected !== null && outdated > 0) {
+  } else if (outdated > 0) {
     state = 'outdated';
   } else {
     state = 'complete';
@@ -571,31 +635,47 @@ async function runFileLoop(
       continue;
     }
     try {
+      // ابتلاع صارم (إصلاح المشرف الخبير 21 أكتوبر): ملف يُنزَّل لكنه لا يُنتج
+      // محتوًى فعليًا — تطبيع null أو صفر أسئلة/حالات — = فشل صريح: لا يُسجَّل
+      // منجزًا في cdn_done_files (فيُعاد تنزيله لاحقًا) ويُحسَب ضمن failed.
+      // تسجيله «منجزًا» كان يبتلع خسارته بصمت داخل هامش الـ95٪.
+      let ingested = false;
       if (f.path === 'cases.json') {
         const rows = normalizeCasesFile(data);
         if (rows && rows.length > 0) {
           await upsertVirtualCases(rows);
           fileSubjects[f.path] = CASES_SUBJECT_MARKER;
           questionsSoFar += rows.length;
+          ingested = true;
         }
       } else if (f.path.startsWith('practice_models/')) {
-        // النماذج لا تدخل SQLite — تُحفظ بالكاش المشفّر عبر primeDownloadedFile
-        if (Array.isArray((data as any)?.questions)) {
+        // النماذج لا تدخل SQLite — تُحفظ بالكاش المشفّر عبر primeDownloadedFile.
+        // ملف الفهرس (index.json) بلا مصفوفة أسئلة بطبيعته — يكفي كونه كائنًا؛
+        // ملف نموذج بلا أسئلة فعلية = تالف ← فشل.
+        if (f.path.endsWith('index.json')) {
+          ingested = !!data && typeof data === 'object';
+        } else if (Array.isArray((data as any)?.questions) && (data as any).questions.length > 0) {
           questionsSoFar += (data as any).questions.length;
+          ingested = true;
         }
       } else {
         const nf = normalizeFile(f.path, data);
-        if (nf) {
+        if (nf && nf.questions.length > 0) {
           await upsertNormalizedFile(nf);
           fileSubjects[f.path] = nf.subject.id;
           questionsSoFar += nf.questions.length;
+          ingested = true;
         }
       }
-      // توحيد الطبقات: الكاش المشفّر الذي تقرأ منه الشاشات يُعبَّأ من نفس التنزيل
-      await primeDownloadedFile(f.path, data);
-      doneMap[f.path] = f.hash || 'done';
-      await writeSyncState(DONE_FILES_KEY, JSON.stringify(doneMap));
-      await writeSyncState(FILE_SUBJECTS_KEY, JSON.stringify(fileSubjects));
+      if (!ingested) {
+        failed.push(f.path);
+      } else {
+        // توحيد الطبقات: الكاش المشفّر الذي تقرأ منه الشاشات يُعبَّأ من نفس التنزيل
+        await primeDownloadedFile(f.path, data);
+        doneMap[f.path] = f.hash || 'done';
+        await writeSyncState(DONE_FILES_KEY, JSON.stringify(doneMap));
+        await writeSyncState(FILE_SUBJECTS_KEY, JSON.stringify(fileSubjects));
+      }
     } catch {
       failed.push(f.path);
     }
@@ -635,18 +715,24 @@ export async function downloadSection(
   }
   const files = await collectSectionFiles(manifest, section);
   if (files.length === 0) {
-    return { ok: false, error: 'no-internet', stored: 0, expected: null };
+    // القسم غائب من الـmanifest أصلًا — ليس عطل اتصال (إصلاح المشرف: تمييز الحالتين)
+    return { ok: false, error: 'failed', stored: 0, expected: null };
   }
 
   const { failed } = await runFileLoop(files, onProgress, cancel);
   const stored = await countSectionStored(section);
   const expected = files.reduce((s, f) => s + f.count, 0);
+  await persistSectionExpected(section, expected);
 
   if (cancel?.cancelled) return { ok: false, error: 'cancelled', failed, stored, expected };
   if (failed.length > 0) return { ok: false, error: 'failed', failed, stored, expected };
 
-  // تحقق الاكتمال الفعلي من التخزين — لا نجاح شكليًا
-  if (expected > 0 && stored < Math.floor(expected * 0.95)) {
+  // تحقق الاكتمال الفعلي من التخزين — لا نجاح شكليًا أبدًا:
+  // متوقَّع صفري = لا أساس للتحقق ← فشل صريح لا نجاح متجاوِز (إصلاح المشرف الخبير)
+  if (expected === 0) {
+    return { ok: false, error: 'failed', failed, stored, expected };
+  }
+  if (stored < Math.floor(expected * 0.95)) {
     return { ok: false, error: 'failed', failed, stored, expected };
   }
 
